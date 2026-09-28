@@ -1,0 +1,99 @@
+/* 深绿轻奢（与小程序 miniapp/app.wxss 同一套 token）
+   改风格只改这里的变量即可 */
+:root {
+  --ink: #16211D;
+  --muted: #6E7A74;
+  --brand: #0F3D34;
+  --brand-2: #1A6B5C;
+  --accent: #C9A063;
+  --line: #EDEBE6;
+  --surface: #FFFFFF;
+  --bg: #F7F6F3;
+  --danger: #A8442F;
+  --warn: #B8791F;
+  --ok: #2E7D5B;
+  --radius-card: 16px;
+  --radius-ctrl: 10px;
+  --shadow-card: 0 6px 20px rgba(15, 61, 52, 0.06);
+
+  /* Element Plus 主题对齐 */
+  --el-color-primary: #0F3D34;
+  --el-color-primary-light-3: #2A5B50;
+  --el-color-primary-light-5: #4A7A6E;
+  --el-color-primary-light-7: #7FA79B;
+  --el-color-primary-light-8: #A3C0B6;
+  --el-color-primary-light-9: #D3E2DC;
+  --el-color-primary-dark-2: #0B2F28;
+  --el-color-success: #2E7D5B;
+  --el-color-danger: #A8442F;
+  --el-color-warning: #B8791F;
+  --el-color-error: #A8442F;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 20px;
+  --el-box-shadow-light: 0 6px 20px rgba(15, 61, 52, 0.06);
+  --el-fill-color-light: #F1EFEA;
+  --el-fill-color-blank: #FFFFFF;
+  --el-bg-color: #FFFFFF;
+  --el-text-color-primary: #16211D;
+  --el-text-color-regular: #3A4741;
+  --el-border-color-lighter: #EDEBE6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  color: var(--brand);
+}
+
+/* 卡片：圆角 + 轻投影，与小程序一致 */
+.el-card {
+  border-radius: var(--radius-card) !important;
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+  background: var(--surface);
+}
+
+.el-button {
+  border-radius: var(--radius-ctrl) !important;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--brand);
+  --el-button-border-color: var(--brand);
+  --el-button-hover-bg-color: var(--brand-2);
+  --el-button-hover-border-color: var(--brand-2);
+  --el-button-active-bg-color: #0B2F28;
+  --el-button-active-border-color: #0B2F28;
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--radius-ctrl) !important;
+  box-shadow: 0 0 0 1px var(--line) inset !important;
+}
+
+.el-table {
+  --el-table-border-color: var(--line);
+  --el-table-header-bg-color: #F1EFEA;
+  border-radius: 0;
+}
+
+.el-tag {
+  border-radius: 6px;
+}

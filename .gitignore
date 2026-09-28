@@ -1,0 +1,52 @@
+# ReCode local database
+.recode
+
+# Dependencies & build
+node_modules/
+admin-web/node_modules/
+app/node_modules/
+app/dist/
+admin-web/dist/
+server/target/
+**/dist/
+
+# Env & secrets
+.env
+.env.*
+!.env*.example
+!**/.env.production.example
+admin-web/.env.development
+admin-web/.env.local
+admin-web/.env.*.local
+
+# Uploads & local runtime
+uploads/
+*.log
+.server*.log
+.server_restart*.log
+server/data/
+server/_t_*.json
+server/**/*.class
+*.mv.db
+*.lock.db
+*.trace.db
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Temp / scratch
+_restore_tmp/
+tmp-space-tree.json
+_b41b.txt
+_preview_*.html
+_run_*.py
+_smoke_*.py
+_smoke_*.ps1
+.workbuddy/
+admin-web/_final_verify2.py
+doc/_table_fragment.html
+

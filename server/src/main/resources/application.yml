@@ -1,0 +1,135 @@
+spring:
+  application:
+    name: property-mgmt-server
+  profiles:
+    active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 32MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-property-mgmt-2026}
+    expire-hours: ${JWT_EXPIRE_HOURS:168}
+  wx:
+    # local 默认 true；生产用 profile=prod 或环境变量 WX_MOCK=false
+    mock: ${WX_MOCK:true}
+    app-id: ${WX_APPID:wx-dev-appid}
+    secret: ${WX_SECRET:wx-dev-secret}
+    templates:
+      AUTH_RESULT: ${WX_TPL_AUTH_RESULT:}
+      ROOM_CHANGE_RESULT: ${WX_TPL_ROOM_CHANGE:}
+      PENDING_REVIEW_STAFF: ${WX_TPL_PENDING_REVIEW:}
+      BILL_DUE: ${WX_TPL_BILL_DUE:}
+      REPAIR_REPLY: ${WX_TPL_REPAIR_REPLY:}
+      COMPLAINT_REPLY: ${WX_TPL_COMPLAINT_REPLY:}
+      VOTE_START: ${WX_TPL_VOTE_START:}
+    pay:
+      mock: ${WX_PAY_MOCK:true}
+      mch-id: ${WX_MCH_ID:}
+      mch-serial-no: ${WX_MCH_SERIAL:}
+      api-v3-key: ${WX_API_V3_KEY:}
+      private-key-pem: ${WX_MCH_PRIVATE_KEY:}
+      notify-url: ${WX_PAY_NOTIFY_URL:}
+      app-id: ${WX_PAY_APPID:}
+  upload:
+    dir: ${UPLOAD_DIR:../uploads}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.property.mgmt: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:file:./data/property_mgmt;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema-h2.sql
+      data-locations: classpath:db/data-h2.sql
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:property_mgmt}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=${MYSQL_USE_SSL:false}
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: never
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+---
+# 生产：MySQL + 关闭微信 MOCK（密钥走环境变量）
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:3306}/${MYSQL_DB:property_mgmt}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=${MYSQL_USE_SSL:false}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: never
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  wx:
+    mock: ${WX_MOCK:false}
+    app-id: ${WX_APPID}
+    secret: ${WX_SECRET}
+    pay:
+      mock: ${WX_PAY_MOCK:false}
+
+# 生产关闭 Swagger / OpenAPI
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    com.property.mgmt: INFO
+    root: WARN
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true

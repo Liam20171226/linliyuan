@@ -1,0 +1,233 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/change-password/change-password",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
+    },
+    {
+      "path": "pages/identity/identity",
+      "style": {
+        "navigationBarTitleText": "选择身份"
+      }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/notices/notices",
+      "style": {
+        "navigationBarTitleText": "公告"
+      }
+    },
+    {
+      "path": "pages/notice-detail/notice-detail",
+      "style": {
+        "navigationBarTitleText": "公告详情"
+      }
+    },
+    {
+      "path": "pages/bills/bills",
+      "style": {
+        "navigationBarTitleText": "我的账单"
+      }
+    },
+    {
+      "path": "pages/service/service",
+      "style": {
+        "navigationBarTitleText": "服务台"
+      }
+    },
+    {
+      "path": "pages/service-submit/service-submit",
+      "style": {
+        "navigationBarTitleText": "提交服务"
+      }
+    },
+    {
+      "path": "pages/service-records/service-records",
+      "style": {
+        "navigationBarTitleText": "服务记录"
+      }
+    },
+    {
+      "path": "pages/service-detail/service-detail",
+      "style": {
+        "navigationBarTitleText": "服务详情"
+      }
+    },
+    {
+      "path": "pages/votes/votes",
+      "style": {
+        "navigationBarTitleText": "投票"
+      }
+    },
+    {
+      "path": "pages/vote-detail/vote-detail",
+      "style": {
+        "navigationBarTitleText": "投票明细"
+      }
+    },
+    {
+      "path": "pages/finance/finance",
+      "style": {
+        "navigationBarTitleText": "财务公开"
+      }
+    },
+    {
+      "path": "pages/public-revenue/public-revenue",
+      "style": {
+        "navigationBarTitleText": "公共收益"
+      }
+    },
+    {
+      "path": "pages/mine/mine",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/staff-tickets/staff-tickets",
+      "style": {
+        "navigationBarTitleText": "物业工单"
+      }
+    },
+    {
+      "path": "pages/staff-ticket-detail/staff-ticket-detail",
+      "style": {
+        "navigationBarTitleText": "工单详情"
+      }
+    },
+    {
+      "path": "pages/staff-inspect/staff-inspect",
+      "style": {
+        "navigationBarTitleText": "巡检任务"
+      }
+    },
+    {
+      "path": "pages/staff-inspect-detail/staff-inspect-detail",
+      "style": {
+        "navigationBarTitleText": "巡检执行"
+      }
+    },
+    {
+      "path": "pages/auth-apply/auth-apply",
+      "style": {
+        "navigationBarTitleText": "住户认证"
+      }
+    },
+    {
+      "path": "pages/room-maintain/room-maintain",
+      "style": {
+        "navigationBarTitleText": "房屋维护"
+      }
+    },
+    {
+      "path": "pages/room-change-apply/room-change-apply",
+      "style": {
+        "navigationBarTitleText": "房屋变更"
+      }
+    },
+    {
+      "path": "pages/approval-records/approval-records",
+      "style": {
+        "navigationBarTitleText": "申请记录"
+      }
+    },
+    {
+      "path": "pages/notice-manage/notice-manage",
+      "style": {
+        "navigationBarTitleText": "通知管理"
+      }
+    },
+    {
+      "path": "pages/notice-create/notice-create",
+      "style": {
+        "navigationBarTitleText": "发布通知"
+      }
+    },
+    {
+      "path": "pages/vote-create/vote-create",
+      "style": {
+        "navigationBarTitleText": "发起投票"
+      }
+    },
+    {
+      "path": "pages/staff-auth/staff-auth",
+      "style": {
+        "navigationBarTitleText": "认证审核"
+      }
+    },
+    {
+      "path": "pages/staff-changes/staff-changes",
+      "style": {
+        "navigationBarTitleText": "变更审核"
+      }
+    },
+    {
+      "path": "pages/complaint-overview/complaint-overview",
+      "style": {
+        "navigationBarTitleText": "工单总览"
+      }
+    },
+    {
+      "path": "pages/about/about",
+      "style": {
+        "navigationBarTitleText": "关于我们"
+      }
+    },
+    {
+      "path": "pages/prepaid/prepaid",
+      "style": {
+        "navigationBarTitleText": "预缴协议"
+      }
+    },
+    {
+      "path": "pages/community-apply/community-apply",
+      "style": {
+        "navigationBarTitleText": "建小区申请"
+      }
+    },
+    {
+      "path": "pages/occupants-roster/occupants-roster",
+      "style": {
+        "navigationBarTitleText": "住户名册"
+      }
+    },
+    {
+      "path": "pages/vote-mine/vote-mine",
+      "style": {
+        "navigationBarTitleText": "我的投票"
+      }
+    },
+    {
+      "path": "pages/vote-stats/vote-stats",
+      "style": {
+        "navigationBarTitleText": "投票统计"
+      }
+    },
+    {
+      "path": "pages/staff-people/staff-people",
+      "style": {
+        "navigationBarTitleText": "人员车辆"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "邻里院",
+    "navigationBarBackgroundColor": "#F7FAF8",
+    "backgroundColor": "#F7FAF8"
+  }
+}
