@@ -975,6 +975,59 @@ function logout() {
   router.push('/login')
 }
 
+/** 平台管理员修改自己的登录密码 */
+const pwdVisible = ref(false)
+const pwdSaving = ref(false)
+const pwdForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+
+function openChangePassword() {
+  pwdForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+  pwdVisible.value = true
+}
+
+async function savePlatformPassword() {
+  const oldPassword = pwdForm.value.oldPassword
+  const newPassword = pwdForm.value.newPassword
+  const confirmPassword = pwdForm.value.confirmPassword
+  if (!oldPassword) {
+    ElMessage.warning('请填写原密码')
+    return
+  }
+  if (newPassword.length < 6) {
+    ElMessage.warning('新密码至少 6 位')
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    ElMessage.warning('两次输入的新密码不一致')
+    return
+  }
+  if (newPassword === oldPassword) {
+    ElMessage.warning('新密码不能与原密码相同')
+    return
+  }
+  pwdSaving.value = true
+  try {
+    const { data } = await api.post('/auth/platform/change-password', {
+      oldPassword,
+      newPassword,
+    })
+    if (data.code === 0) {
+      ElMessage.success('密码已修改')
+      pwdVisible.value = false
+    } else {
+      ElMessage.error(data.message || '修改失败')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '网络错误')
+  } finally {
+    pwdSaving.value = false
+  }
+}
+
 onMounted(() => {
   ensureRegions()
   load()
@@ -991,6 +1044,7 @@ onMounted(() => {
       </div>
       <div class="row">
         <el-button @click="refreshCurrent">刷新</el-button>
+        <el-button type="primary" plain @click="openChangePassword">更改密码</el-button>
         <el-button @click="router.push('/staff-login')">物业登录</el-button>
         <el-button @click="logout">退出</el-button>
       </div>
@@ -1435,6 +1489,40 @@ onMounted(() => {
         <el-button v-if="personForm.status === 0" type="success" @click="enablePersonInEdit">启用</el-button>
         <el-button @click="personEditVisible = false">取消</el-button>
         <el-button type="primary" :loading="personSaving" @click="savePersonEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="pwdVisible"
+      title="更改平台登录密码"
+      width="420px"
+      destroy-on-close
+    >
+      <el-form label-position="top" @submit.prevent="savePlatformPassword">
+        <el-form-item label="原密码" required>
+          <el-input v-model="pwdForm.oldPassword" type="password" show-password autocomplete="current-password" />
+        </el-form-item>
+        <el-form-item label="新密码" required>
+          <el-input
+            v-model="pwdForm.newPassword"
+            type="password"
+            show-password
+            placeholder="至少 6 位"
+            autocomplete="new-password"
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码" required>
+          <el-input
+            v-model="pwdForm.confirmPassword"
+            type="password"
+            show-password
+            autocomplete="new-password"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="pwdVisible = false">取消</el-button>
+        <el-button type="primary" :loading="pwdSaving" @click="savePlatformPassword">确定</el-button>
       </template>
     </el-dialog>
   </div>
