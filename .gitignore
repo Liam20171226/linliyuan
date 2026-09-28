@@ -14,10 +14,12 @@ server/target/
 .env
 .env.*
 !.env*.example
+!.env.production
 !**/.env.production.example
 admin-web/.env.development
 admin-web/.env.local
 admin-web/.env.*.local
+!admin-web/.env.production
 
 # Uploads & local runtime
 uploads/
