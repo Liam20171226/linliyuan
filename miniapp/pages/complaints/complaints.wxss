@@ -1,0 +1,26 @@
+@import "../../styles/photo-attach.wxss";
+.row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.main { font-size: 28rpx; font-weight: 600; }
+.sub {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.5;
+}
+.reply {
+  display: block;
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  background: rgba(15, 61, 52, 0.08);
+  font-size: 24rpx;
+  color: var(--brand);
+  line-height: 1.5;
+}
+.empty-box.soft { padding: 40rpx 20rpx; text-align: center; }

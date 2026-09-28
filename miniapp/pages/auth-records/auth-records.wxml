@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="card tip" wx:if="{{!list.length && !loading}}">
+    <text class="tip-text">暂无认证申请。可从首页「发起住户认证」提交。</text>
+  </view>
+
+  <view class="card item" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+    <view class="row-top">
+      <text class="title">申请单号{{item.id}}</text>
+      <text class="status {{item.status}}">{{item.statusLabel}}</text>
+    </view>
+    <text class="meta">房屋：{{item.roomLabel}} · {{item.roleLabel}}</text>
+    <text class="meta" wx:if="{{item.applicantName}}">姓名：{{item.applicantName}}</text>
+    <text class="meta muted" wx:if="{{item.rejectReason}}">拒绝原因：{{item.rejectReason}}</text>
+    <text class="meta muted" wx:if="{{item.applyTimeLabel}}">申请时间：{{item.applyTimeLabel}}</text>
+  </view>
+</view>

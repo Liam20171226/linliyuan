@@ -1,0 +1,46 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state">
+    <text class="state-desc">加载中…</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="state">
+    <text class="state-title">无法打开</text>
+    <text class="state-desc">{{error}}</text>
+  </view>
+
+  <scroll-view wx:else class="scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="article">
+      <text class="title">{{title}}</text>
+      <view class="meta" wx:if="{{statusLabel || timeLabel}}">
+        <text wx:if="{{statusLabel}}">{{statusLabel}}</text>
+        <text wx:if="{{statusLabel && timeLabel}}" class="sep">·</text>
+        <text wx:if="{{timeLabel}}">{{timeLabel}}</text>
+      </view>
+
+      <text class="total">合计 {{totalBallots}} 票</text>
+
+      <view class="stat-row" wx:for="{{options}}" wx:key="optionId">
+        <view class="stat-head">
+          <text class="stat-name">{{item.optionText}}</text>
+          <text class="stat-n">{{item.votes}} 票 · {{item.pct}}%</text>
+        </view>
+        <view class="bar-track">
+          <view class="bar-fill" style="width: {{item.pct}}%;"></view>
+        </view>
+      </view>
+      <view wx:if="{{!options.length}}" class="empty">暂无选票</view>
+
+      <text class="sec-lab">各房业主选票</text>
+      <view class="ballot" wx:for="{{ballots}}" wx:key="index">
+        <text class="b-room">{{item.roomLabel}}</text>
+        <text class="b-line">{{item.voterName}} · {{item.optionText}}</text>
+        <text class="b-time">{{item.votedAt}}</text>
+      </view>
+      <view wx:if="{{!ballots.length}}" class="empty">尚无业主投票</view>
+
+      <view class="ops" wx:if="{{canDelete}}">
+        <button class="btn-danger" bindtap="remove">删除投票</button>
+      </view>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,34 @@
+<view class="page" wx:if="{{detail}}">
+  <view class="card">
+    <view class="row-top">
+      <text class="title">申请单号{{detail.id}}</text>
+      <text class="status {{detail.status}}">{{detail.statusLabel}}</text>
+    </view>
+    <text class="meta">房屋：{{detail.roomLabel}}</text>
+    <text class="meta">申请身份：{{detail.roleLabel}}</text>
+    <text class="meta" wx:if="{{detail.applicantName}}">姓名：{{detail.applicantName}}</text>
+    <text class="meta" wx:if="{{detail.applicantMobile}}">手机：{{detail.applicantMobile}}</text>
+    <text class="meta" wx:if="{{detail.applicantIdCardNo}}">身份证：{{detail.applicantIdCardNo}}</text>
+    <text class="meta" wx:if="{{detail.applyMessage}}">留言：{{detail.applyMessage}}</text>
+    <text class="meta muted" wx:if="{{detail.applyTimeLabel}}">申请时间：{{detail.applyTimeLabel}}</text>
+    <text class="meta muted" wx:if="{{detail.reviewTimeLabel}}">审核时间：{{detail.reviewTimeLabel}}</text>
+    <text class="meta muted" wx:if="{{detail.rejectReason}}">拒绝原因：{{detail.rejectReason}}</text>
+  </view>
+
+  <view class="card" wx:if="{{detail.attachments && detail.attachments.length}}">
+    <text class="sec">附件</text>
+    <view
+      class="att"
+      wx:for="{{detail.attachments}}"
+      wx:key="id"
+      data-url="{{item.url}}"
+      bindtap="preview"
+    >
+      <image wx:if="{{item.isImage && item.url}}" class="thumb" src="{{item.url}}" mode="aspectFill" />
+      <text class="att-name">{{item.fileName || ('附件' + item.id)}}</text>
+    </view>
+  </view>
+</view>
+<view class="page" wx:elif="{{loading}}">
+  <text class="muted">加载中…</text>
+</view>

@@ -1,0 +1,233 @@
+<view class="home">
+  <!-- 未登录 -->
+  <block wx:if="{{!loggedIn}}">
+    <view class="guest">
+      <image class="guest-bg" src="/assets/home-garden-bg.png" mode="aspectFill" />
+      <view class="guest-veil"></view>
+      <view class="guest-content">
+        <text class="guest-brand">邻里院</text>
+        <text class="guest-title">住得安心，办事顺手</text>
+        <text class="guest-lead">在院落光影里，把认证、账单与报修都办妥</text>
+        <button class="guest-cta" bindtap="goLogin">登录 / 注册</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="nav" style="height: {{navHeight}}px; padding-top: {{statusBarHeight}}px;">
+      <view class="nav-row">
+        <view class="nav-left" style="max-width: {{leftMax}}px;" bindtap="openPicker" hover-class="tap">
+          <view class="pin"></view>
+          <text class="nav-name">{{communityName}}</text>
+          <view class="nav-caret"></view>
+        </view>
+        <text class="nav-title">邻里院</text>
+      </view>
+    </view>
+    <view style="height: {{navHeight}}px;"></view>
+    <view class="main">
+      <!-- Banner + 投票提醒叠在上方 -->
+      <view class="banner-wrap" wx:if="{{banners.length}}">
+        <swiper
+          class="banner"
+          circular
+          autoplay
+          interval="4500"
+          duration="500"
+          indicator-dots
+          indicator-color="rgba(0,0,0,0.15)"
+          indicator-active-color="#0F3D34"
+          bindchange="onBannerChange"
+        >
+          <swiper-item wx:for="{{banners}}" wx:key="id">
+            <view class="banner-item" data-id="{{item.id}}" bindtap="goNoticeDetail">
+              <image class="banner-img" src="{{item.coverSrc}}" mode="aspectFill" />
+            </view>
+          </swiper-item>
+        </swiper>
+        <!-- 图文分离：标题放在图片下方的白色区域，不再压在图上 -->
+        <view
+          class="banner-caption"
+          data-id="{{banners[bannerIndex].id}}"
+          bindtap="goNoticeDetail"
+          hover-class="tap"
+        >
+          <text class="banner-title">{{banners[bannerIndex].title}}</text>
+          <text class="banner-meta">{{banners[bannerIndex].timeLabel}}</text>
+        </view>
+        <view
+          class="banner-vote"
+          wx:if="{{voteTasks.length}}"
+          bindtap="goVoteTodo"
+          hover-class="tap"
+        >
+          <view class="tip-dot"></view>
+          <text class="tip-text">{{voteTasks[0].title}}</text>
+          <text class="tip-go">去投票</text>
+        </view>
+      </view>
+      <view
+        class="vote-bar"
+        wx:elif="{{voteTasks.length}}"
+        bindtap="goVoteTodo"
+        hover-class="tap"
+      >
+        <view class="tip-dot"></view>
+        <text class="tip-text">{{voteTasks[0].title}}</text>
+        <text class="tip-go">去投票</text>
+      </view>
+
+      <!-- 最新公告 3 条 -->
+      <view class="panel notice-panel">
+        <view class="panel-hd">
+          <text class="panel-title">物业公告</text>
+          <text class="panel-more" bindtap="goNotices" hover-class="tap">更多</text>
+        </view>
+        <view wx:if="{{latestNotices.length}}" class="notice-list">
+          <view
+            class="notice-row"
+            wx:for="{{latestNotices}}"
+            wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="goNoticeDetail"
+            hover-class="tap"
+          >
+            <text class="notice-title">{{item.title}}</text>
+            <text class="notice-date">{{item.timeLabel}}</text>
+          </view>
+        </view>
+        <view wx:else class="notice-empty" bindtap="goNotices" hover-class="tap">
+          <text>暂无公告</text>
+        </view>
+      </view>
+
+      <view class="panel" wx:if="{{!isStaff}}">
+        <view class="panel-hd">
+          <text class="panel-title">常用服务</text>
+        </view>
+        <view class="grid">
+          <view class="grid-item" wx:if="{{showBills}}" hover-class="tap" bindtap="goBills">
+            <view class="ico-wrap">
+              <view class="ico tone-a"><view class="i i-bill"></view></view>
+              <view class="badge" wx:if="{{unpaidBillCount > 0}}">{{unpaidBillCount > 99 ? '99+' : unpaidBillCount}}</view>
+            </view>
+            <text class="grid-name">待缴账单</text>
+          </view>
+          <view class="grid-item" wx:if="{{showRepair}}" hover-class="tap" bindtap="goServiceDesk">
+            <view class="ico tone-b"><view class="i i-fix"></view></view>
+            <text class="grid-name">报事报修</text>
+          </view>
+          <view class="grid-item" wx:if="{{showFinance}}" hover-class="tap" bindtap="goFinancePublic">
+            <view class="ico tone-a"><view class="i i-finance"></view></view>
+            <text class="grid-name">财务公开</text>
+          </view>
+          <view class="grid-item" wx:if="{{showAuth}}" hover-class="tap" bindtap="goAuth">
+            <view class="ico tone-b"><view class="i i-auth"></view></view>
+            <text class="grid-name">住户认证</text>
+          </view>
+          <view class="grid-item" wx:if="{{showVehicles}}" hover-class="tap" bindtap="goRoomMaintain">
+            <view class="ico tone-c"><view class="i i-car"></view></view>
+            <text class="grid-name">人员车辆</text>
+          </view>
+          <view class="grid-item" wx:if="{{showVotes}}" hover-class="tap" bindtap="goCommitteeNotices">
+            <view class="ico tone-a"><view class="i i-notice"></view></view>
+            <text class="grid-name">业委通知</text>
+          </view>
+          <view class="grid-item" wx:if="{{showVotes}}" hover-class="tap" bindtap="goVotes">
+            <view class="ico tone-b"><view class="i i-vote"></view></view>
+            <text class="grid-name">业主投票</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 物业身份：物业工作台（不展示常用服务） -->
+      <view class="panel" wx:if="{{isStaff}}">
+        <view class="panel-hd">
+          <text class="panel-title">物业工作台</text>
+          <text class="panel-sub" wx:if="{{staffRoleLabel}}">{{staffRoleLabel}} · 本小区待办</text>
+        </view>
+        <view class="grid">
+          <view class="grid-item" hover-class="tap" bindtap="goStaffTickets">
+            <view class="ico-wrap">
+              <view class="ico tone-b"><view class="i i-fix"></view></view>
+              <view class="badge" wx:if="{{staffRepairCount > 0}}">{{staffRepairCount > 99 ? '99+' : staffRepairCount}}</view>
+            </view>
+            <text class="grid-name">报事报修处理</text>
+          </view>
+          <view class="grid-item" hover-class="tap" bindtap="goStaffInspect">
+            <view class="ico-wrap">
+              <view class="ico tone-a"><view class="i i-check"></view></view>
+              <view class="badge" wx:if="{{staffInspectCount > 0}}">{{staffInspectCount > 99 ? '99+' : staffInspectCount}}</view>
+            </view>
+            <text class="grid-name">巡检任务</text>
+          </view>
+          <view class="grid-item" wx:if="{{showStaffAuth}}" hover-class="tap" bindtap="goStaffAuth">
+            <view class="ico tone-a"><view class="i i-auth"></view></view>
+            <text class="grid-name">住户认证处理</text>
+          </view>
+          <view class="grid-item" wx:if="{{showStaffAuth}}" hover-class="tap" bindtap="goStaffPeople">
+            <view class="ico tone-c"><view class="i i-car"></view></view>
+            <text class="grid-name">人员车辆处理</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="panel" wx:if="{{isCommittee}}">
+        <view class="panel-hd">
+          <text class="panel-title">业委会</text>
+          <text class="panel-sub">本小区任职专属</text>
+        </view>
+        <view class="grid">
+          <view class="grid-item" hover-class="tap" bindtap="goOccupantsRoster">
+            <view class="ico tone-c"><view class="i i-list"></view></view>
+            <text class="grid-name">住户名册</text>
+          </view>
+          <view class="grid-item" hover-class="tap" bindtap="goVoteCreate">
+            <view class="ico tone-b"><view class="i i-vote"></view></view>
+            <text class="grid-name">发起投票</text>
+          </view>
+          <view class="grid-item" hover-class="tap" bindtap="goComplaintOverview">
+            <view class="ico tone-c"><view class="i i-fix"></view></view>
+            <text class="grid-name">工单查看</text>
+          </view>
+          <view class="grid-item" hover-class="tap" bindtap="goNoticeManage">
+            <view class="ico tone-a"><view class="i i-notice"></view></view>
+            <text class="grid-name">发布通知</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="cp-mask" wx:if="{{pickerVisible}}" catchtouchmove="noop" bindtap="closePicker">
+    <view class="cp-sheet" catchtap="noop">
+      <view class="cp-handle"></view>
+      <text class="cp-title">切换小区</text>
+      <text class="cp-sub">全部小区，按城市排列</text>
+      <view wx:if="{{pickerLoading}}" class="cp-empty">加载中…</view>
+      <scroll-view wx:elif="{{cityGroups.length}}" scroll-y class="cp-list">
+        <block wx:for="{{cityGroups}}" wx:key="city">
+          <text class="cp-city">{{item.city}}</text>
+          <view
+            class="cp-row {{c.active ? 'on' : ''}}"
+            wx:for="{{item.communities}}"
+            wx:for-item="c"
+            wx:key="id"
+            data-id="{{c.id}}"
+            data-name="{{c.name}}"
+            bindtap="onPickCommunity"
+            hover-class="tap"
+          >
+            <view class="cp-row-body">
+              <text class="cp-name">{{c.name}}</text>
+              <text class="cp-dist" wx:if="{{c.districtName}}">{{c.districtName}}</text>
+            </view>
+            <text class="cp-check" wx:if="{{c.active}}">当前</text>
+          </view>
+        </block>
+      </scroll-view>
+      <view wx:else class="cp-empty">{{pickerError || '暂无小区'}}</view>
+      <button class="cp-cancel" bindtap="closePicker">取消</button>
+    </view>
+  </view>
+</view>

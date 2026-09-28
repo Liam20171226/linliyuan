@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "我的",
+  "navigationBarBackgroundColor": "#0d3f32",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#eef1f0",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "identity-picker": "/components/identity-picker/identity-picker"
+  }
+}

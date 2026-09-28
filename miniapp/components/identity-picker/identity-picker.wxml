@@ -1,0 +1,26 @@
+<view class="mask" wx:if="{{visible}}" catchtouchmove="noop" bindtap="onClose">
+  <view class="sheet" catchtap="noop">
+    <view class="handle"></view>
+    <text class="title">{{title}}</text>
+    <text class="sub">{{subtitle}}</text>
+    <scroll-view scroll-y class="list" wx:if="{{identities.length}}">
+      <view
+        class="row {{item.active ? 'on' : ''}}"
+        wx:for="{{identities}}"
+        wx:key="key"
+        data-item="{{item}}"
+        bindtap="onPick"
+        hover-class="row-hover"
+      >
+        <view class="row-body">
+          <text class="row-title">{{item.label}}</text>
+          <text class="row-desc" wx:if="{{item.roleLabel}}">{{item.roleLabel}}</text>
+        </view>
+        <text class="check" wx:if="{{item.active}}">当前</text>
+        <view class="arrow" wx:else></view>
+      </view>
+    </scroll-view>
+    <view wx:else class="empty">暂无可用身份</view>
+    <button class="cancel" bindtap="onClose">取消</button>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="hint">物业提交后直接公示，不计入经营公开余额三数。</view>
+
+  <view class="card" wx:for="{{list}}" wx:key="id">
+    <view class="row-top">
+      <text class="title">{{item.title}}</text>
+      <text class="badge">{{item.statusLabel}}</text>
+    </view>
+    <text class="amount">¥{{item.amountText || item.amount}}</text>
+    <text class="meta">账期 {{item.occurMonth || '—'}} · {{item.timeLabel || ''}}</text>
+    <text class="remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+  </view>
+
+  <view wx:if="{{!loading && !list.length}}" class="empty-box">
+    <text class="empty-title">暂无已公示公共收益</text>
+    <text class="empty-desc">物业在后台提交后将在此展示</text>
+  </view>
+</view>

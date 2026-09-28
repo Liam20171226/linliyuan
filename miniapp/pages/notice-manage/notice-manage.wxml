@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'mine' ? 'on' : ''}}" data-tab="mine" bindtap="switchTab">我发布的</view>
+    <view class="seg-item {{tab === 'all' ? 'on' : ''}}" data-tab="all" bindtap="switchTab">业委会全部</view>
+  </view>
+
+  <view class="cell-group" wx:if="{{list.length}}">
+    <view class="cell" wx:for="{{list}}" wx:key="id">
+      <view class="cell-body" data-id="{{item.id}}" bindtap="openDetail">
+        <text class="cell-title">{{item.title}}</text>
+        <text class="cell-desc">{{item.visLabel}} · {{item.timeLabel}}{{item.mine ? ' · 我发布' : ''}}</text>
+      </view>
+      <view class="cell-ops" wx:if="{{item.canEdit}}">
+        <text class="op-link" data-id="{{item.id}}" catchtap="openEdit">修改</text>
+        <text class="del" data-id="{{item.id}}" catchtap="remove">删除</text>
+      </view>
+    </view>
+  </view>
+  <view wx:elif="{{!loading}}" class="empty-box">
+    <text class="empty-title">{{tab === 'mine' ? '暂无发布记录' : '暂无业委通知'}}</text>
+    <text class="empty-desc">{{tab === 'mine' ? '请在首页「业委会 → 发布通知」发布' : '成员发布后会出现在这里'}}</text>
+  </view>
+</view>

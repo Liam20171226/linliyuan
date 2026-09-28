@@ -1,0 +1,96 @@
+<view class="page">
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="按姓名搜索"
+      value="{{keyword}}"
+      confirm-type="search"
+      bindinput="onKeyword"
+      bindconfirm="search"
+    />
+    <text class="search-btn" bindtap="search">搜索</text>
+  </view>
+  <text class="hint">共 {{total}} 人 · 楼栋 / 单元 / 楼层 / 房屋 · 手机明文 · 身份证已脱敏</text>
+
+  <view class="tree" wx:if="{{tree.length}}">
+    <view class="tree-b" wx:for="{{tree}}" wx:key="key" wx:for-item="b">
+      <view
+        class="tree-row lv1"
+        hover-class="tap"
+        data-level="building"
+        data-key="{{b.key}}"
+        bindtap="toggle"
+      >
+        <text class="chev {{b.expanded ? 'open' : ''}}">›</text>
+        <text class="tree-label">{{b.label}}</text>
+        <text class="tree-count">{{b.count}} 人</text>
+      </view>
+
+      <block wx:if="{{b.expanded}}">
+        <view class="tree-u" wx:for="{{b.units}}" wx:key="key" wx:for-item="u">
+          <view
+            class="tree-row lv2"
+            hover-class="tap"
+            data-level="unit"
+            data-key="{{u.key}}"
+            data-building="{{b.key}}"
+            bindtap="toggle"
+          >
+            <text class="chev {{u.expanded ? 'open' : ''}}">›</text>
+            <text class="tree-label">{{u.label}}</text>
+            <text class="tree-count">{{u.count}} 人</text>
+          </view>
+
+          <block wx:if="{{u.expanded}}">
+            <view class="tree-f" wx:for="{{u.floors}}" wx:key="key" wx:for-item="f">
+              <view
+                class="tree-row lv3"
+                hover-class="tap"
+                data-level="floor"
+                data-key="{{f.key}}"
+                data-building="{{b.key}}"
+                data-unit="{{u.key}}"
+                bindtap="toggle"
+              >
+                <text class="chev {{f.expanded ? 'open' : ''}}">›</text>
+                <text class="tree-label">{{f.label}}</text>
+                <text class="tree-count">{{f.count}} 人</text>
+              </view>
+
+              <block wx:if="{{f.expanded}}">
+                <view class="tree-r" wx:for="{{f.rooms}}" wx:key="key" wx:for-item="r">
+                  <view
+                    class="tree-row lv4"
+                    hover-class="tap"
+                    data-level="room"
+                    data-key="{{r.key}}"
+                    data-building="{{b.key}}"
+                    data-unit="{{u.key}}"
+                    data-floor="{{f.key}}"
+                    bindtap="toggle"
+                  >
+                    <text class="chev {{r.expanded ? 'open' : ''}}">›</text>
+                    <text class="tree-label">{{r.label}}</text>
+                    <text class="tree-count">{{r.people.length}} 人</text>
+                  </view>
+
+                  <view class="people" wx:if="{{r.expanded}}">
+                    <view class="person" wx:for="{{r.people}}" wx:key="id" wx:for-item="p">
+                      <text class="person-name">{{p.realName}} · {{p.roleLabel}}</text>
+                      <text class="person-meta">{{p.mobile}} · {{p.idCardNo}}</text>
+                    </view>
+                  </view>
+                </view>
+              </block>
+            </view>
+          </block>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view wx:elif="{{!loading}}" class="empty-box">
+    <text class="empty-title">暂无住户</text>
+    <text class="empty-desc">本小区尚无有效住户绑定</text>
+  </view>
+</view>

@@ -1,0 +1,44 @@
+<view class="page page-with-footer">
+  <view class="card form">
+    <view class="field-block">
+      <text class="field-label">标题</text>
+      <input
+        class="field-input"
+        placeholder="简明概括通知主题"
+        value="{{title}}"
+        bindinput="onTitle"
+        maxlength="64"
+      />
+    </view>
+    <view class="field-block">
+      <text class="field-label">可见范围</text>
+      <picker mode="selector" range="{{visPicker}}" bindchange="onVis">
+        <view class="field-picker">{{visLabel}}</view>
+      </picker>
+      <text class="field-hint">可选住户或仅业主；业委通知不上首页 Banner</text>
+    </view>
+    <view class="field-block">
+      <view class="field-label-row">
+        <text class="field-label">正文</text>
+        <text class="field-link" bindtap="pickBodyImage">插入图片</text>
+      </view>
+      <textarea
+        class="field-area"
+        placeholder="填写通知正文，可插入图片"
+        value="{{content}}"
+        bindinput="onContent"
+        maxlength="8000"
+        auto-height
+      />
+    </view>
+  </view>
+
+  <view class="footer-bar">
+    <button
+      class="btn-main"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="submit"
+    >{{editId ? '保存' : '发布'}}</button>
+  </view>
+</view>

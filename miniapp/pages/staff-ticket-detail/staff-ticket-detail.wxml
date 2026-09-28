@@ -1,0 +1,79 @@
+<import src="/templates/photo-attach.wxml" />
+
+<view class="page" wx:if="{{order}}">
+  <view class="card">
+    <view class="hd">
+      <text class="cat">{{order.category}}</text>
+      <text class="badge badge-mute">{{statusLabel(order.status)}}</text>
+    </view>
+    <text class="desc">{{order.content}}</text>
+    <text class="sub" wx:if="{{order.location}}">位置：{{order.location}}</text>
+    <text class="sub" wx:if="{{order.assigneeUserId}}">当前处理人：{{memberNames[order.assigneeUserId] || order.assigneeUserId}}</text>
+    <text class="sub" wx:elif="{{order.assigneeRole}}">当前处理岗：{{assigneeRoleLabel}}（待接单）</text>
+    <text class="sub" wx:else>尚未派单</text>
+  </view>
+
+  <!-- 接单（仅一线岗、派到本岗且未接单） -->
+  <view class="card claim-card" wx:if="{{canClaim}}">
+    <text class="claim-tip">工单已派到「{{assigneeRoleLabel}}」，接单后由我负责处理</text>
+    <button class="btn-main" bindtap="claim" loading="{{submitting}}">接单</button>
+  </view>
+
+  <!-- 完整订单过程 -->
+  <view class="card" wx:if="{{timeline.length}}">
+    <text class="sec">订单过程</text>
+    <view class="tl">
+      <view class="tl-item" wx:for="{{timeline}}" wx:key="type">
+        <view class="tl-dot tl-{{item.type}}"></view>
+        <view class="tl-body">
+          <view class="tl-head">
+            <text class="tl-title">{{item.title}}</text>
+            <text class="tl-time">{{fmt(item.time)}}</text>
+          </view>
+          <text class="tl-op" wx:if="{{item.opName}}">{{item.opName}}</text>
+          <text class="tl-content" wx:if="{{item.content}}">{{item.content}}</text>
+          <text class="tl-target" wx:if="{{item.target}}">→ {{item.target}}</text>
+          <view class="tl-imgs" wx:if="{{item.images.length}}">
+            <image
+              wx:for="{{item.images}}" wx:for-item="img" wx:key="id"
+              class="tl-img"
+              src="{{img.url}}"
+              mode="aspectFill"
+              data-urls="{{item.images}}"
+              data-url="{{img.url}}"
+              bindtap="onPreviewSection"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加回复 / 直接办理（带最多 3 张照片，样式与报事报修提交一致） -->
+  <view class="card" wx:if="{{canReply}}">
+    <text class="sec">添加处理回复</text>
+    <textarea class="area" placeholder="说明处理情况…" value="{{replyText}}" bindinput="onReplyInput" maxlength="500" />
+    <template is="photoAttach" data="{{photos, maxPhotos}}" />
+    <button class="btn-ghost btn-reply" bindtap="submitReply" loading="{{submitting}}">提交回复</button>
+  </view>
+
+  <view class="actions" wx:if="{{canTransfer || canFinish}}">
+    <button class="btn-ghost" wx:if="{{canTransfer}}" bindtap="openTransfer">转派岗位</button>
+    <button class="btn-finish" wx:if="{{canFinish}}" bindtap="finish" loading="{{submitting}}">处理完成</button>
+  </view>
+</view>
+
+<!-- 转派弹层：转派给岗位 -->
+<view class="mask" wx:if="{{transferOpen}}" bindtap="closeTransfer">
+  <view class="sheet" catchtap="noop">
+    <text class="sheet-title">转派给岗位</text>
+    <view class="member {{transferRole === item.code ? 'on' : ''}}"
+          wx:for="{{roleOptions}}" wx:key="code"
+          data-code="{{item.code}}" bindtap="pickRole">
+      <text class="member-name">{{item.label}}</text>
+    </view>
+    <textarea class="area" placeholder="转派附言（会同时作为留言通知业主）" value="{{transferRemark}}" bindinput="onRemarkInput" maxlength="200" />
+    <button class="btn-main" bindtap="submitTransfer" loading="{{submitting}}">确认转派</button>
+    <button class="btn-ghost cancel" bindtap="closeTransfer">取消</button>
+  </view>
+</view>

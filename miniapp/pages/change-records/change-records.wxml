@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="card tip" wx:if="{{!list.length && !loading}}">
+    <text class="tip-text">暂无变更申请。业主可从首页「房屋数据维护」提交。</text>
+  </view>
+
+  <view class="card item" wx:for="{{list}}" wx:key="id">
+    <view class="row-top">
+      <text class="title">{{item.changeTypeLabel || item.changeType}}</text>
+      <text class="status {{item.status}}">{{item.statusLabel}}</text>
+    </view>
+    <text class="meta">房屋：{{item.roomLabel}}</text>
+    <text class="meta" wx:if="{{item.payloadSummary}}">内容：{{item.payloadSummary}}</text>
+    <text class="meta muted" wx:if="{{item.rejectReason}}">拒绝原因：{{item.rejectReason}}</text>
+    <text class="meta muted" wx:if="{{item.applyTimeLabel}}">申请时间：{{item.applyTimeLabel}}</text>
+  </view>
+</view>

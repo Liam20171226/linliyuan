@@ -1,0 +1,39 @@
+.seg {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  padding: 6rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+  border-radius: 10rpx;
+}
+.seg-item.on {
+  background: #fff;
+  color: var(--brand);
+  font-weight: 600;
+}
+.cell-ops {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8rpx;
+}
+.op-link {
+  padding: 12rpx 8rpx;
+  font-size: 24rpx;
+  color: var(--brand);
+}
+.del {
+  flex-shrink: 0;
+  padding: 12rpx 8rpx 12rpx 12rpx;
+  font-size: 24rpx;
+  color: #a34b2c;
+}

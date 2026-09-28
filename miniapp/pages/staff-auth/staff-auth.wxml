@@ -1,0 +1,56 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'pending' ? 'on' : ''}}" data-tab="pending" bindtap="onTab" hover-class="tap">
+      待审核 {{pendingList.length}}
+    </view>
+    <view class="seg-item {{tab === 'done' ? 'on' : ''}}" data-tab="done" bindtap="onTab" hover-class="tap">
+      已处理 {{doneList.length}}
+    </view>
+  </view>
+
+  <block wx:if="{{tab === 'pending'}}">
+    <view class="rec card" wx:for="{{pendingList}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.roleText}}</text>
+        <text class="badge badge-warn">{{item.statusLabel}}</text>
+      </view>
+      <view class="rec-line">
+        <text class="rec-name">{{item.applicantName || '未填写'}}</text>
+        <text class="rec-mobile">{{item.applicantMobile || '—'}}</text>
+      </view>
+      <text class="rec-sub">房屋：{{item.roomText}}</text>
+      <text class="rec-sub" wx:if="{{item.applyMessage}}">备注：{{item.applyMessage}}</text>
+      <text class="rec-time">{{item.timeLabel}}</text>
+      <view class="acts">
+        <button class="act-btn act-ok" data-id="{{item.id}}" catchtap="approve">通过</button>
+        <button class="act-btn act-no" data-id="{{item.id}}" catchtap="reject">驳回</button>
+      </view>
+    </view>
+    <view wx:if="{{!loading && !pendingList.length}}" class="empty-box soft">
+      <text class="empty-desc">没有待审核的认证申请</text>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="rec card" wx:for="{{doneList}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.roleText}}</text>
+        <text class="badge {{item.status === 'APPROVED' ? 'badge-ok' : 'badge-mute'}}">{{item.statusLabel}}</text>
+      </view>
+      <view class="rec-line">
+        <text class="rec-name">{{item.applicantName || '未填写'}}</text>
+        <text class="rec-mobile">{{item.applicantMobile || '—'}}</text>
+      </view>
+      <text class="rec-sub">房屋：{{item.roomText}}</text>
+      <text class="rec-reply" wx:if="{{item.rejectReason}}">驳回原因：{{item.rejectReason}}</text>
+      <text class="rec-time">{{item.timeLabel}}</text>
+    </view>
+    <view wx:if="{{!loading && !doneList.length}}" class="empty-box soft">
+      <text class="empty-desc">暂无已处理的申请</text>
+    </view>
+  </block>
+
+  <view wx:if="{{loading}}" class="empty-box soft">
+    <text class="empty-desc">加载中…</text>
+  </view>
+</view>

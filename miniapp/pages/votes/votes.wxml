@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="cell-group" wx:if="{{list.length}}">
+    <view
+      class="cell"
+      wx:for="{{list}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="open"
+      hover-class="cell-hover"
+    >
+      <view class="cell-body">
+        <text class="cell-title">{{item.title}}</text>
+        <text class="cell-desc">{{item.sourceLabel}} · {{item.statusLabel}}</text>
+        <text class="cell-desc" wx:if="{{item.rangeLabel}}">{{item.rangeLabel}}</text>
+      </view>
+      <view class="cell-arrow"></view>
+    </view>
+  </view>
+  <view wx:elif="{{!loading}}" class="empty-box">
+    <text class="empty-title">暂无投票</text>
+    <text class="empty-desc">业委会或物业发起后会出现在这里</text>
+  </view>
+</view>

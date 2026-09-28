@@ -1,0 +1,57 @@
+<view class="page">
+  <view class="card tip" wx:if="{{loggedIn && !roomId}}">
+    <text class="tip-text">请先切换为住户身份并绑定房屋。游客可先发起住户认证。</text>
+    <button class="btn-main mini" bindtap="goAuth">去认证</button>
+  </view>
+
+  <block wx:elif="{{roomId}}">
+    <view class="card head">
+      <text class="addr">{{address}}</text>
+      <text class="role">当前身份：{{myRoleLabel}}{{isOwner ? '' : '（仅业主可提交变更）'}}</text>
+    </view>
+
+    <view class="card">
+      <text class="sec">本房住户 · {{members.length}}</text>
+      <view class="line" wx:for="{{members}}" wx:key="occupantId">
+        <text class="line-main">{{item.realName || '未命名'}} · {{item.roleLabel}}</text>
+        <text class="line-sub">{{item.mobile || '—'}}</text>
+      </view>
+      <text class="empty" wx:if="{{!members.length}}">暂无</text>
+    </view>
+
+    <view class="card">
+      <text class="sec">车辆 · {{vehicles.length}}</text>
+      <view class="line" wx:for="{{vehicles}}" wx:key="id">
+        <text class="line-main">{{item.plateNo}}</text>
+        <text class="line-sub">{{item.spaceLabel}}</text>
+      </view>
+      <text class="empty" wx:if="{{!vehicles.length}}">暂无</text>
+    </view>
+
+    <view class="card">
+      <text class="sec">已挂车位 · {{parkingSpaces.length}}</text>
+      <view class="line" wx:for="{{parkingSpaces}}" wx:key="id">
+        <text class="line-main">{{item.spaceNo}}</text>
+      </view>
+      <text class="empty" wx:if="{{!parkingSpaces.length}}">暂无</text>
+    </view>
+
+    <view class="card" wx:if="{{isOwner}}">
+      <text class="sec">申请变更</text>
+      <text class="hint">提交后由物业审核，通过后生效。记录见「我的 → 审批记录」。</text>
+      <view class="actions">
+        <view
+          class="act"
+          wx:for="{{actions}}"
+          wx:key="type"
+          data-type="{{item.type}}"
+          bindtap="onAction"
+          hover-class="act-hover"
+        >
+          <text class="act-name">{{item.name}}</text>
+          <text class="act-hint">{{item.hint}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

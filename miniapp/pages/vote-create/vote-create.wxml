@@ -1,0 +1,48 @@
+<view class="page">
+  <view class="card form">
+    <view class="field-block">
+      <text class="field-label">投票标题</text>
+      <input class="field-input" placeholder="简明概括议题" value="{{title}}" bindinput="onTitle" maxlength="64" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">背景说明</text>
+      <textarea
+        class="field-area"
+        placeholder="说明事项背景与表决要点"
+        value="{{background}}"
+        bindinput="onBg"
+        maxlength="1000"
+        auto-height
+      />
+    </view>
+    <view class="field-block row">
+      <view class="half">
+        <text class="field-label">开始日期</text>
+        <picker mode="date" value="{{startDate}}" bindchange="onStart">
+          <view class="field-picker">{{startDate}}</view>
+        </picker>
+      </view>
+      <view class="half">
+        <text class="field-label">结束日期</text>
+        <picker mode="date" value="{{endDate}}" bindchange="onEnd">
+          <view class="field-picker">{{endDate}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field-block">
+      <text class="field-label">选项（至少 2 个）</text>
+      <view class="opt-row" wx:for="{{options}}" wx:key="index">
+        <input
+          class="field-input flex"
+          placeholder="选项 {{index + 1}}"
+          value="{{item}}"
+          data-idx="{{index}}"
+          bindinput="onOption"
+        />
+        <text class="opt-del" data-idx="{{index}}" bindtap="removeOption">删</text>
+      </view>
+      <text class="link" bindtap="addOption">+ 添加选项</text>
+    </view>
+  </view>
+  <button class="btn-main" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">发起投票</button>
+</view>

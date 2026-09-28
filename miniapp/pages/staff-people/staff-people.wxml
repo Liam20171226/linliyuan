@@ -1,0 +1,101 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'change' ? 'on' : ''}}" data-tab="change" bindtap="onTab" hover-class="tap">
+      变更申请 {{pendingList.length}}
+    </view>
+    <view class="seg-item {{tab === 'people' ? 'on' : ''}}" data-tab="people" bindtap="onTab" hover-class="tap">人员</view>
+    <view class="seg-item {{tab === 'vehicle' ? 'on' : ''}}" data-tab="vehicle" bindtap="onTab" hover-class="tap">车辆</view>
+  </view>
+
+  <!-- 变更申请：人员/车辆/车位的增删改 -->
+  <block wx:if="{{tab === 'change'}}">
+    <view class="rec card" wx:for="{{pendingList}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.changeTypeLabel}}</text>
+        <text class="badge badge-warn">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.summary}}</text>
+      <text class="rec-sub">房屋：{{item.roomText}}</text>
+      <text class="rec-sub" wx:if="{{item.applyMessage}}">备注：{{item.applyMessage}}</text>
+      <text class="rec-time">{{item.timeLabel}}</text>
+      <view class="acts">
+        <button class="act-btn act-ok" data-id="{{item.id}}" catchtap="approve">通过</button>
+        <button class="act-btn act-no" data-id="{{item.id}}" catchtap="reject">驳回</button>
+      </view>
+    </view>
+    <view wx:if="{{!loading && !pendingList.length}}" class="empty-box soft">
+      <text class="empty-desc">没有待审核的变更申请</text>
+    </view>
+
+    <view wx:if="{{doneList.length}}" class="sec-title">近期已处理</view>
+    <view class="rec card" wx:for="{{doneList}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.changeTypeLabel}}</text>
+        <text class="badge {{item.status === 'APPROVED' ? 'badge-ok' : 'badge-mute'}}">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.summary}}</text>
+      <text class="rec-sub">房屋：{{item.roomText}}</text>
+      <text class="rec-reply" wx:if="{{item.rejectReason}}">驳回原因：{{item.rejectReason}}</text>
+      <text class="rec-time">{{item.timeLabel}}</text>
+    </view>
+  </block>
+
+  <!-- 人员名册 -->
+  <block wx:elif="{{tab === 'people'}}">
+    <view class="search">
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索姓名 / 手机号"
+        confirm-type="search"
+        bindinput="onKeyword"
+        bindconfirm="onSearch"
+      />
+      <view class="search-btn" bindtap="onSearch" hover-class="tap">搜索</view>
+    </view>
+    <view class="rec card" wx:for="{{people}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.roleText}}</text>
+        <text class="badge badge-mute">{{item.roomNo || '—'}}</text>
+      </view>
+      <view class="rec-line">
+        <text class="rec-name">{{item.nameText}}</text>
+        <text class="rec-mobile">{{item.mobile || '—'}}</text>
+      </view>
+      <text class="rec-sub">{{item.address || item.roomNo || '—'}}</text>
+    </view>
+    <view wx:if="{{!loading && !people.length}}" class="empty-box soft">
+      <text class="empty-desc">没有匹配的住户</text>
+    </view>
+  </block>
+
+  <!-- 车辆 -->
+  <block wx:else>
+    <view class="search">
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索车牌号"
+        confirm-type="search"
+        bindinput="onKeyword"
+        bindconfirm="onSearch"
+      />
+      <view class="search-btn" bindtap="onSearch" hover-class="tap">搜索</view>
+    </view>
+    <view class="rec card" wx:for="{{vehicles}}" wx:key="id">
+      <view class="rec-top">
+        <text class="cat">{{item.plateNo}}</text>
+        <text class="badge badge-mute">{{item.spaceText}}</text>
+      </view>
+      <text class="rec-sub">{{item.address || item.roomNo || '—'}}</text>
+      <text class="rec-time">{{item.timeLabel}}</text>
+    </view>
+    <view wx:if="{{!loading && !vehicles.length}}" class="empty-box soft">
+      <text class="empty-desc">没有匹配的车辆</text>
+    </view>
+  </block>
+
+  <view wx:if="{{loading}}" class="empty-box soft">
+    <text class="empty-desc">加载中…</text>
+  </view>
+</view>

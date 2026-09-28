@@ -1,0 +1,30 @@
+@import "../../styles/photo-attach.wxss";
+.row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.main { font-size: 28rpx; font-weight: 600; color: #1a1a1a; }
+.sub {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.5;
+}
+.rate-btn {
+  margin: 20rpx 0 0 !important;
+  padding: 0 !important;          /* 清掉微信 button 默认上下内边距 */
+  height: 64rpx !important;
+  line-height: 64rpx !important;
+  font-size: 24rpx !important;
+  background: var(--brand) !important;
+  color: #ffffff !important;
+  border-radius: 12rpx !important;
+}
+.rate-btn::after { border: none !important; }
+.empty-box.soft {
+  padding: 40rpx 20rpx;
+  text-align: center;
+}

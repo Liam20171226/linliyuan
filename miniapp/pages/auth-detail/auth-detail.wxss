@@ -1,0 +1,65 @@
+.row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 10rpx;
+}
+.title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.status {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--brand);
+}
+.status.PENDING {
+  background: rgba(196, 92, 38, 0.12);
+  color: #c45c26;
+}
+.status.APPROVED {
+  background: rgba(31, 106, 90, 0.12);
+  color: #1f6a5a;
+}
+.status.REJECTED {
+  background: rgba(163, 75, 44, 0.12);
+  color: #a34b2c;
+}
+.meta {
+  display: block;
+  font-size: 24rpx;
+  color: #333333;
+  line-height: 1.55;
+  margin-top: 6rpx;
+}
+.meta.muted, .muted {
+  color: #999999;
+}
+.sec {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+  color: var(--brand);
+}
+.att {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 12rpx 0;
+}
+.thumb {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 12rpx;
+  background: #eef3f0;
+}
+.att-name {
+  font-size: 24rpx;
+  color: #333333;
+  flex: 1;
+}

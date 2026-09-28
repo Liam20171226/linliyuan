@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "登录",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F5F6F8",
+  "usingComponents": {
+    "identity-picker": "/components/identity-picker/identity-picker"
+  }
+}

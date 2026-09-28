@@ -1,0 +1,21 @@
+<view class="desk">
+  <view class="intro">
+    <text class="intro-title">报事报修</text>
+    <text class="intro-sub">选择类型后填写并提交</text>
+  </view>
+
+  <view class="list">
+    <view
+      class="entry"
+      wx:for="{{entries}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onEntry"
+      hover-class="tap"
+    >
+      <view class="entry-ico tone-{{item.tone}}">{{item.icon}}</view>
+      <text class="entry-name">{{item.name}}</text>
+      <view class="entry-arrow"></view>
+    </view>
+  </view>
+</view>

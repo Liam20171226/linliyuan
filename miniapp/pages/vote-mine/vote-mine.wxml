@@ -1,0 +1,28 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'mine' ? 'on' : ''}}" data-tab="mine" bindtap="switchTab">我发起的</view>
+    <view class="seg-item {{tab === 'all' ? 'on' : ''}}" data-tab="all" bindtap="switchTab">业委会全部</view>
+  </view>
+
+  <view class="cell-group" wx:if="{{list.length}}">
+    <view
+      class="cell"
+      wx:for="{{list}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-mine="{{item.mine}}"
+      bindtap="open"
+      hover-class="cell-hover"
+    >
+      <view class="cell-body">
+        <text class="cell-title">{{item.title}}</text>
+        <text class="cell-desc">{{item.statusLabel}} · {{item.timeLabel}}{{item.mine ? ' · 我发起' : ''}}</text>
+      </view>
+      <view class="cell-arrow"></view>
+    </view>
+  </view>
+  <view wx:elif="{{!loading}}" class="empty-box">
+    <text class="empty-title">{{tab === 'mine' ? '暂无发起记录' : '暂无业委会投票'}}</text>
+    <text class="empty-desc">{{tab === 'mine' ? '请在首页「业委会 → 发起投票」发起' : '成员发起后会出现在这里'}}</text>
+  </view>
+</view>

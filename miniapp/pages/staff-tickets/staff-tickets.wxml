@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'open' ? 'on' : ''}}" data-tab="open" bindtap="onTab" hover-class="tap">
+      待办工单 {{openList.length}}
+    </view>
+    <view class="seg-item {{tab === 'done' ? 'on' : ''}}" data-tab="done" bindtap="onTab" hover-class="tap">
+      已完成工单 {{doneList.length}}
+    </view>
+  </view>
+
+  <block wx:if="{{tab === 'open'}}">
+    <view class="rec card" wx:for="{{openList}}" wx:key="id" data-id="{{item.id}}" data-kind="{{item.kind}}" bindtap="openTicket" hover-class="tap">
+      <view class="rec-top">
+        <text class="cat">{{item.category}}</text>
+        <text class="badge badge-mute">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.desc}}</text>
+      <text class="rec-sub claim" wx:if="{{item.pendingClaim}}">已派到岗位，等待接单</text>
+      <text class="rec-time">{{item.time}}</text>
+    </view>
+    <view wx:if="{{!loading && !openList.length}}" class="empty-box soft">
+      <text class="empty-desc">暂无待办工单</text>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="rec card" wx:for="{{doneList}}" wx:key="id" data-id="{{item.id}}" data-kind="{{item.kind}}" bindtap="openTicket" hover-class="tap">
+      <view class="rec-top">
+        <text class="cat">{{item.category}}</text>
+        <text class="badge badge-ok">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.desc}}</text>
+      <text class="rec-time">{{item.time}}</text>
+    </view>
+    <view wx:if="{{!loading && !doneList.length}}" class="empty-box soft">
+      <text class="empty-desc">还没有已完成的工单</text>
+    </view>
+  </block>
+
+  <view wx:if="{{loading}}" class="empty-box soft">
+    <text class="empty-desc">加载中…</text>
+  </view>
+</view>

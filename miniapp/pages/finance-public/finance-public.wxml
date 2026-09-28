@@ -1,0 +1,115 @@
+<view class="page">
+  <view class="period-card">
+    <view class="seg">
+      <text class="seg-item {{period === 'month' ? 'on' : ''}}" data-period="month" bindtap="setPeriod">按月</text>
+      <text class="seg-item {{period === 'year' ? 'on' : ''}}" data-period="year" bindtap="setPeriod">按年</text>
+    </view>
+    <view class="period-nav">
+      <text class="nav-btn" bindtap="prev">‹</text>
+      <text class="period-label">{{rangeLabel}}</text>
+      <text class="nav-btn" bindtap="next">›</text>
+    </view>
+  </view>
+
+  <block wx:if="{{summary}}">
+    <view class="hero card">
+      <text class="hero-lab">本期结余</text>
+      <text class="hero-num {{balanceNeg ? 'neg' : ''}}">¥{{summary.balance}}</text>
+      <view class="hero-pair">
+        <view class="pair-item">
+          <text class="pair-lab">本期收入</text>
+          <text class="pair-val in">¥{{summary.income}}</text>
+        </view>
+        <view class="pair-divider"></view>
+        <view class="pair-item">
+          <text class="pair-lab">本期支出</text>
+          <text class="pair-val out">¥{{summary.expense}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="how-link" bindtap="toggleHow">{{showHow ? '收起说明' : '怎么算的？'}}</view>
+    <view class="how-box card" wx:if="{{showHow}}">
+      <text class="how-line">按账单月份统计：该月账单交清即计入，不论哪天交的；未交不算。</text>
+      <text class="how-line">预缴按约定月份摊入；经营收支登记后即时计入。</text>
+    </view>
+
+    <view class="card block" wx:if="{{showIncomeBlock}}">
+      <view class="block-hd">
+        <text class="block-title">收入</text>
+        <text class="block-sum">合计 ¥{{summary.income}}</text>
+      </view>
+
+      <view class="nested" wx:if="{{ownerBars.length || payDetails.length}}">
+        <view class="compose-hd">
+          <text class="compose-title">业主缴交</text>
+          <text class="compose-sum">合计 ¥{{ownerTotal}}</text>
+        </view>
+        <view class="bar-row" wx:for="{{ownerBars}}" wx:key="label">
+          <view class="bar-meta">
+            <text class="bar-name">{{item.label}}</text>
+            <text class="bar-amt">¥{{item.amount}}</text>
+          </view>
+          <view class="bar-track">
+            <view wx:if="{{item.showPaid}}" class="bar-fill paid" style="width: {{item.paidPct}}%;"></view>
+            <view wx:if="{{item.showPrepaid}}" class="bar-fill prepaid" style="width: {{item.prepaidPct}}%;"></view>
+          </view>
+        </view>
+        <view class="compose-legend" wx:if="{{showLegend}}">
+          <view class="leg"><view class="dot paid"></view><text>当月缴交</text></view>
+          <view class="leg"><view class="dot prepaid"></view><text>预缴确收</text></view>
+        </view>
+
+        <view class="pay-box" wx:if="{{payDetails.length}}">
+          <view class="compose-hd tight">
+            <text class="compose-title sm">缴费明细</text>
+            <text class="compose-sum">{{payDetails.length}} 笔</text>
+          </view>
+          <view class="pay-row" wx:for="{{payDetails}}" wx:key="index">
+            <view class="pay-top">
+              <text class="pay-kind {{item.kindClass}}">{{item.kindLabel}}</text>
+              <text class="pay-amt">¥{{item.amount}}</text>
+            </view>
+            <text class="pay-line">{{item.room}} · {{item.fee}}</text>
+            <text class="pay-line muted">{{item.billMonth}} · {{item.channel}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="nested" wx:if="{{otherIncome.length}}">
+        <view class="compose-hd">
+          <text class="compose-title">其他经营收入</text>
+          <text class="compose-sum">合计 ¥{{otherIncomeTotal}}</text>
+        </view>
+        <view class="entry-row" wx:for="{{otherIncome}}" wx:key="id">
+          <view class="entry-top">
+            <text class="entry-title">{{item.title}}</text>
+            <text class="bar-amt">¥{{item.amount}}</text>
+          </view>
+          <text class="pay-line muted">{{item.occurDate}}{{item.remark ? ' · ' + item.remark : ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card block" wx:if="{{expenseBreakdown.length}}">
+      <view class="block-hd">
+        <text class="block-title">支出</text>
+        <text class="block-sum out">合计 ¥{{expenseTotal}}</text>
+      </view>
+      <view class="bar-row" wx:for="{{expenseBreakdown}}" wx:key="index">
+        <view class="bar-meta">
+          <text class="bar-name">{{item.label}}</text>
+          <text class="bar-amt out">¥{{item.amount}}</text>
+        </view>
+        <view class="bar-track">
+          <view class="bar-fill expense" style="width: {{item.pct}}%;"></view>
+        </view>
+        <text class="bar-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+      </view>
+    </view>
+  </block>
+
+  <view wx:elif="{{!loading}}" class="empty-box soft">
+    <text class="empty-desc">暂无财务数据</text>
+  </view>
+</view>

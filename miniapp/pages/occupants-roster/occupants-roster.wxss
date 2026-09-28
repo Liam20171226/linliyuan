@@ -1,0 +1,91 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  padding: 0 24rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  font-size: 28rpx;
+}
+.search-btn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--brand);
+  padding: 12rpx 8rpx;
+}
+.hint {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.tree {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.tree-row.lv2 { padding-left: 48rpx; }
+.tree-row.lv3 { padding-left: 72rpx; }
+.tree-row.lv4 { padding-left: 96rpx; background: #fafaf8; }
+.chev {
+  width: 28rpx;
+  font-size: 28rpx;
+  color: var(--muted);
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+  margin-right: 8rpx;
+  line-height: 1;
+}
+.chev.open { transform: rotate(90deg); color: var(--brand); }
+.tree-label {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+.lv3 .tree-label,
+.lv4 .tree-label {
+  font-weight: 500;
+}
+.tree-count {
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-left: 12rpx;
+}
+
+.people {
+  padding: 0 24rpx 8rpx 120rpx;
+  background: #fafaf8;
+  border-bottom: 1rpx solid var(--line);
+}
+.person {
+  padding: 16rpx 0;
+  border-top: 1rpx dashed var(--line);
+}
+.person:first-child { border-top: none; }
+.person-name {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ink);
+  margin-bottom: 4rpx;
+}
+.person-meta {
+  display: block;
+  font-size: 22rpx;
+  color: var(--muted);
+}

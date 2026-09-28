@@ -1,0 +1,110 @@
+/* 顶部横向筛选：全部 + 报事报修 5 类 */
+.chips {
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+  padding-bottom: 4rpx;
+}
+.chip {
+  display: inline-block;
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 24rpx;
+  margin-right: 12rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.chip.on {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rec { margin-bottom: 16rpx; }
+.rec-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+/* 报事报修 5 类标签，各有自己的色调 */
+.cat {
+  flex-shrink: 0;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+.cat-public {
+  background: rgba(168, 92, 46, 0.14);
+  color: #8A4F26;
+}
+.cat-indoor {
+  background: rgba(70, 110, 140, 0.14);
+  color: #33566E;
+}
+.cat-complaint {
+  background: rgba(168, 68, 47, 0.14);
+  color: #A8442F;
+}
+.cat-praise {
+  background: rgba(201, 160, 99, 0.20);
+  color: #8A6A34;
+}
+.cat-advice {
+  background: rgba(15, 61, 52, 0.10);
+  color: var(--brand);
+}
+
+.rec-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #3A4741;
+  line-height: 1.55;
+}
+.rec-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.rec-reply {
+  display: block;
+  margin-top: 10rpx;
+  padding: 16rpx 20rpx;
+  background: var(--bg0);
+  border-radius: var(--radius-ctrl);
+  font-size: 24rpx;
+  color: #3A4741;
+  line-height: 1.55;
+}
+.rec-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+.rec-time {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+.rate-btn {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 60rpx !important;
+  line-height: 60rpx !important;
+  min-width: 160rpx;
+  font-size: 24rpx !important;
+  background: var(--brand) !important;
+  color: #ffffff !important;
+  border-radius: 12rpx !important;
+}
+.rate-btn::after { border: none !important; }
+.empty-box.soft {
+  padding: 60rpx 20rpx;
+  text-align: center;
+}

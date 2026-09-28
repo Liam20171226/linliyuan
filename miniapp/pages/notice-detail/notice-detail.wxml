@@ -1,0 +1,54 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state">
+    <text class="state-desc">加载中…</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="state">
+    <text class="state-title">无法打开</text>
+    <text class="state-desc">{{error}}</text>
+  </view>
+
+  <scroll-view wx:elif="{{detail}}" class="scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="article">
+      <text class="title">{{detail.title}}</text>
+      <view class="meta">
+        <text>{{detail.sourceLabel}}</text>
+        <text class="sep">·</text>
+        <text>{{detail.timeLabel}}</text>
+        <text wx:if="{{detail.urgency >= 2}}" class="urgent">紧急</text>
+      </view>
+
+      <view class="body">
+        <block wx:for="{{blocks}}" wx:key="key">
+          <rich-text wx:if="{{item.type === 'text'}}" class="para" nodes="{{item.html}}"></rich-text>
+          <image
+            wx:elif="{{item.type === 'img'}}"
+            class="body-img"
+            src="{{item.src}}"
+            mode="widthFix"
+            data-src="{{item.src}}"
+            bindtap="previewBody"
+            show-menu-by-longpress
+          />
+        </block>
+        <text wx:if="{{!blocks.length}}" class="empty-body">暂无正文</text>
+      </view>
+
+      <view wx:if="{{attachments.length}}" class="att-box">
+        <text class="att-title">附件</text>
+        <view
+          class="att-row"
+          wx:for="{{attachments}}"
+          wx:key="id"
+          data-src="{{item.src}}"
+          data-name="{{item.name}}"
+          bindtap="openAttachment"
+          hover-class="tap"
+        >
+          <text class="att-name">{{item.name}}</text>
+          <text class="att-go">查看</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

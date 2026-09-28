@@ -1,0 +1,79 @@
+<view class="page page-with-footer">
+  <view class="card tip">
+    <text class="tip-text">提交后由平台审核。通过后才真正建小区；初始化房屋时可自行填写楼栋、单元、楼层、每层户数，审核通过后自动生成供认证选择。</text>
+  </view>
+
+  <view class="card">
+    <view class="field-block">
+      <text class="field-label">所在地区</text>
+      <picker mode="multiSelector" range="{{regionRange}}" value="{{regionIndex}}" bindchange="onRegionChange" bindcolumnchange="onRegionColumnChange">
+        <view class="field-picker">{{regionLabel || '请选择省 / 市 / 区'}}</view>
+      </picker>
+    </view>
+    <view class="field-block">
+      <text class="field-label">小区名称</text>
+      <input class="field-input" value="{{communityName}}" bindinput="onField" data-k="communityName" placeholder="如：阳光花园" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">申请人</text>
+      <input class="field-input" value="{{applicantName}}" bindinput="onField" data-k="applicantName" placeholder="真实姓名" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">申请人角色</text>
+      <picker mode="selector" range="{{roleLabels}}" bindchange="onRole">
+        <view class="field-picker">{{roleLabels[roleIndex]}}</view>
+      </picker>
+    </view>
+    <view class="field-block">
+      <text class="field-label">申请原因（选填，最多 20 字）</text>
+      <input class="field-input" value="{{applyReason}}" bindinput="onField" data-k="applyReason" maxlength="20" placeholder="如：小区管理" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">申请电话</text>
+      <input class="field-input" type="number" value="{{applicantMobile}}" bindinput="onField" data-k="applicantMobile" placeholder="必填" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">房屋初始化（选填）</text>
+      <picker mode="selector" range="{{initLabels}}" value="{{initIndex}}" bindchange="onInitMode">
+        <view class="field-picker">{{initLabels[initIndex]}}</view>
+      </picker>
+    </view>
+    <view class="count-grid" wx:if="{{showCustomCounts}}">
+      <view class="count-item">
+        <text class="count-label">楼栋数</text>
+        <input class="field-input count-input" type="number" value="{{buildings}}" bindinput="onField" data-k="buildings" placeholder="1–30" />
+      </view>
+      <view class="count-item">
+        <text class="count-label">每栋单元</text>
+        <input class="field-input count-input" type="number" value="{{unitsPerBuilding}}" bindinput="onField" data-k="unitsPerBuilding" placeholder="1–20" />
+      </view>
+      <view class="count-item">
+        <text class="count-label">每单元楼层</text>
+        <input class="field-input count-input" type="number" value="{{floorsPerUnit}}" bindinput="onField" data-k="floorsPerUnit" placeholder="1–60" />
+      </view>
+      <view class="count-item">
+        <text class="count-label">每层房间</text>
+        <input class="field-input count-input" type="number" value="{{roomsPerFloor}}" bindinput="onField" data-k="roomsPerFloor" placeholder="1–20" />
+      </view>
+      <text class="count-hint">预计生成 {{estimatedRooms}} 套房（上限 8000）</text>
+    </view>
+  </view>
+
+  <text class="section-title">我的申请</text>
+  <view class="cell-group" wx:if="{{mine.length}}">
+    <view class="cell" wx:for="{{mine}}" wx:key="id">
+      <view class="cell-body">
+        <text class="cell-title">{{item.communityName}}</text>
+        <text class="cell-desc">{{item.statusLabel}} · {{item.applicantRoleLabel}}</text>
+        <text class="cell-desc muted">{{item.initLabel}}</text>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="empty-box soft">
+    <text class="empty-desc">暂无申请记录</text>
+  </view>
+
+  <view class="footer-bar">
+    <button class="btn-main" bindtap="submit" loading="{{submitting}}">提交申请</button>
+  </view>
+</view>

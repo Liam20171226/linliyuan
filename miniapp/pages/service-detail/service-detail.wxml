@@ -1,0 +1,153 @@
+<view class="page" wx:if="{{order && !loading}}">
+
+  <!-- 工单概览 -->
+  <view class="card head">
+    <view class="head-top">
+      <text class="cat cat-{{catKey}}">{{order.category}}</text>
+      <text class="badge badge-mute">{{statusLabel}}</text>
+    </view>
+    <text class="head-desc">{{order.content}}</text>
+    <text class="head-sub" wx:if="{{order.location}}">位置：{{order.location}}</text>
+    <text class="head-time">提交时间：{{timeLabel}}</text>
+  </view>
+
+  <!-- 照片附件（提交时上传，最多 3 张，点击放大预览） -->
+  <view class="card" wx:if="{{photos.length}}">
+    <view class="sec-title">照片附件</view>
+    <view class="photo-grid">
+      <view class="photo-cell" wx:for="{{photos}}" wx:key="id">
+        <image class="photo-thumb" src="{{item.src}}" mode="aspectFill" data-url="{{item.src}}" bindtap="previewPhoto" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 处理进度时间线：过程中即可查看完整流转；待办仍仅在处理完成后推送 -->
+  <view class="card" wx:if="{{timeline.length}}">
+    <view class="sec-title">{{kind === 'complaint' ? '处理记录' : '处理进度'}}</view>
+    <view class="timeline">
+      <view class="tl-item" wx:for="{{timeline}}" wx:key="type">
+        <view class="tl-dot tl-{{item.type}}"></view>
+        <view class="tl-body">
+          <view class="tl-row">
+            <text class="tl-title">{{item.title}}</text>
+            <text class="tl-time">{{item.timeLabel}}</text>
+          </view>
+          <view class="tl-op" wx:if="{{item.opName}}">
+            {{item.opName}}<text wx:if="{{item.target}}" class="tl-target"> → {{item.target}}</text>
+          </view>
+          <!-- 业主评价：与表单相同模板 -->
+          <view class="rate-card" wx:if="{{item.type === 'RATE'}}">
+            <view class="rate-row">
+              <text class="rate-label">是否解决</text>
+              <text class="rate-res {{item.ratingResolved === 0 ? 'no' : ''}}">{{item.ratingResolved === 0 ? '未解决' : '解决'}}</text>
+            </view>
+            <view class="rate-row">
+              <text class="rate-label">响应及时</text>
+              <view class="stars">
+                <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (item.ratingResponse || item.rating) ? 'on' : ''}}">★</text>
+              </view>
+            </view>
+            <view class="rate-row">
+              <text class="rate-label">处理及时</text>
+              <view class="stars">
+                <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (item.ratingHandling || item.rating) ? 'on' : ''}}">★</text>
+              </view>
+            </view>
+            <view class="rate-row">
+              <text class="rate-label">处理结果</text>
+              <view class="stars">
+                <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (item.ratingSatisfaction || item.rating) ? 'on' : ''}}">★</text>
+              </view>
+            </view>
+            <view class="tl-content" wx:if="{{item.content}}">{{item.content}}</view>
+          </view>
+          <view class="tl-content" wx:elif="{{item.content}}">{{item.content}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 评价：处理完成(待评价)时默认展开；表扬不参与满意度评价 -->
+  <view class="card" wx:if="{{order.status === 'DONE_WAIT_RATE' && !order.rating && !isPraise}}">
+    <view class="sec-title">评价本次服务</view>
+    <view class="rate-form">
+      <view class="rate-row">
+        <text class="rate-label">是否解决</text>
+        <view class="rate-opts">
+          <text class="opt {{rateResolved === 1 ? 'on' : ''}}" data-v="1" bindtap="setResolved">解决</text>
+          <text class="opt {{rateResolved === 0 ? 'on off' : ''}}" data-v="0" bindtap="setResolved">未解决</text>
+        </view>
+      </view>
+      <view class="rate-row">
+        <text class="rate-label">响应及时</text>
+        <view class="stars">
+          <text
+            wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this"
+            class="star {{s <= rateResponse ? 'on' : ''}}"
+            data-k="rateResponse" data-v="{{s}}" bindtap="onStar"
+          >★</text>
+        </view>
+      </view>
+      <view class="rate-row">
+        <text class="rate-label">处理及时</text>
+        <view class="stars">
+          <text
+            wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this"
+            class="star {{s <= rateHandling ? 'on' : ''}}"
+            data-k="rateHandling" data-v="{{s}}" bindtap="onStar"
+          >★</text>
+        </view>
+      </view>
+      <view class="rate-row">
+        <text class="rate-label">处理结果</text>
+        <view class="stars">
+          <text
+            wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this"
+            class="star {{s <= rateSatisfaction ? 'on' : ''}}"
+            data-k="rateSatisfaction" data-v="{{s}}" bindtap="onStar"
+          >★</text>
+        </view>
+      </view>
+      <textarea
+        class="rate-textarea"
+        value="{{rateComment}}"
+        placeholder="补充评价（选填）"
+        maxlength="200"
+        bindinput="onRateComment"
+      />
+      <button class="btn-main rate-submit" loading="{{rateSubmitting}}" bindtap="submitRate">提交评价</button>
+    </view>
+  </view>
+
+  <!-- 已评价结果展示（时间线末尾「业主评价」已含完整模板时不再重复） -->
+  <view class="card" wx:if="{{order.rating && !hasTimelineRate}}">
+    <view class="sec-title">业主评价</view>
+    <view class="rate-row">
+      <text class="rate-label">是否解决</text>
+      <text class="rate-res {{order.ratingResolved === 0 ? 'no' : ''}}">{{order.ratingResolved === 0 ? '未解决' : '解决'}}</text>
+    </view>
+    <view class="rate-row">
+      <text class="rate-label">响应及时</text>
+      <view class="stars">
+        <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (order.ratingResponse || order.rating) ? 'on' : ''}}">★</text>
+      </view>
+    </view>
+    <view class="rate-row">
+      <text class="rate-label">处理及时</text>
+      <view class="stars">
+        <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (order.ratingHandling || order.rating) ? 'on' : ''}}">★</text>
+      </view>
+    </view>
+    <view class="rate-row">
+      <text class="rate-label">处理结果</text>
+      <view class="stars">
+        <text wx:for="{{[1,2,3,4,5]}}" wx:for-item="s" wx:key="*this" class="star {{s <= (order.ratingSatisfaction || order.rating) ? 'on' : ''}}">★</text>
+      </view>
+    </view>
+    <view class="rate-comment" wx:if="{{order.ratingComment}}">{{order.ratingComment}}</view>
+  </view>
+</view>
+
+<view wx:if="{{loading}}" class="empty-box soft">
+  <text class="empty-desc">加载中…</text>
+</view>

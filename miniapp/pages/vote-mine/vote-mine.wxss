@@ -1,0 +1,23 @@
+.seg {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  padding: 6rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+  border-radius: 10rpx;
+}
+.seg-item.on {
+  background: #fff;
+  color: var(--brand);
+  font-weight: 600;
+}
+.cell-hover { background: rgba(0, 0, 0, 0.03); }

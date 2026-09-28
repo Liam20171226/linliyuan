@@ -1,0 +1,105 @@
+<view class="page {{mode === 'unpaid' && unpaidCount > 0 ? 'page-with-footer' : ''}}">
+  <view class="intro" wx:if="{{mode === 'unpaid'}}">
+    <text class="intro-title">待缴费账单</text>
+    <text class="intro-desc">勾选需要缴纳的账期，底部统一支付。</text>
+  </view>
+  <view class="intro" wx:else>
+    <text class="intro-title">缴费记录</text>
+    <text class="intro-desc">含已缴账单与预缴实付，按房屋分组查看。</text>
+  </view>
+
+  <view class="room" wx:for="{{roomGroups}}" wx:key="roomId">
+    <view class="room-hd">
+      <view class="room-hd-main" data-room-id="{{item.roomId}}" bindtap="toggleRoom">
+        <text class="chevron {{item.expanded ? 'open' : ''}}">›</text>
+        <view class="room-text">
+          <text class="room-name">{{item.roomLabel}}</text>
+          <text class="room-meta">{{item.metaText}}</text>
+        </view>
+      </view>
+      <text
+        wx:if="{{mode === 'unpaid'}}"
+        class="room-select"
+        data-room-id="{{item.roomId}}"
+        catchtap="selectRoomAll"
+      >全选</text>
+    </view>
+
+    <view class="room-panel" wx:if="{{item.expanded}}">
+      <view
+        class="bill {{bill.checked ? 'bill-on' : ''}} {{bill.payable ? '' : 'bill-plain'}}"
+        wx:for="{{item.bills}}"
+        wx:for-item="bill"
+        wx:key="id"
+        data-id="{{bill.id}}"
+        bindtap="onBillTap"
+      >
+        <view class="bill-row">
+          <label wx:if="{{bill.payable}}" class="chk" catchtap="toggleSelect" data-id="{{bill.id}}">
+            <checkbox value="{{bill.id}}" checked="{{bill.checked}}" />
+          </label>
+          <text class="bill-month">{{bill.billMonth}}</text>
+          <text class="bill-amount">¥{{bill.totalAmountText}}</text>
+        </view>
+        <view class="fee-list">
+          <view class="fee-row" wx:for="{{bill.lines}}" wx:for-item="line" wx:key="id">
+            <text class="fee-name">{{line.title}}</text>
+            <text class="fee-amt">¥{{line.amountText}}</text>
+          </view>
+          <view class="fee-empty" wx:if="{{!bill.lines.length}}">
+            <text>{{bill.feeSummary}}</text>
+          </view>
+        </view>
+        <view class="bill-note" wx:if="{{!bill.payable}}">
+          <text>缴费时间 {{bill.paidAtText}}</text>
+        </view>
+      </view>
+
+      <view class="bill bill-plain prepaid" wx:for="{{item.prepaidPlans}}" wx:for-item="plan" wx:key="id">
+        <view class="bill-row">
+          <text class="bill-month">预缴 #{{plan.id}}</text>
+          <text class="bill-tag">{{plan.statusLabel}}</text>
+          <text class="bill-amount">¥{{plan.cashAmountText}}</text>
+        </view>
+        <view class="fee-list">
+          <view class="fee-row">
+            <text class="fee-name">约定账期</text>
+            <text class="fee-amt">{{plan.monthsText}}</text>
+          </view>
+          <view class="fee-row">
+            <text class="fee-name">覆盖费项</text>
+            <text class="fee-amt">{{plan.feesText}}</text>
+          </view>
+          <view class="fee-row">
+            <text class="fee-name">原价 / 优惠</text>
+            <text class="fee-amt">¥{{plan.listAmountText}} / ¥{{plan.discountAmountText}}</text>
+          </view>
+        </view>
+        <view class="bill-note">
+          <text>实付 ¥{{plan.cashAmountText}} · {{plan.paidAtText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && !roomGroups.length}}" class="empty-box">
+    <text class="empty-title">{{mode === 'history' ? '暂无缴费记录' : '暂无待缴账单'}}</text>
+    <text class="empty-desc">{{mode === 'history' ? '账单缴费与预缴实付会出现在这里' : '物业发放后会出现在这里；请确认已切换为住户身份'}}</text>
+  </view>
+
+  <view class="pay-footer" wx:if="{{mode === 'unpaid' && unpaidCount > 0}}">
+    <label class="pay-all" catchtap="toggleSelectAll">
+      <checkbox checked="{{allSelected}}" color="#1a7a5c" />
+      <text class="pay-all-text">全选</text>
+    </label>
+    <view class="pay-footer-left">
+      <text class="pay-footer-hint">已选 {{selectedIds.length}} 笔</text>
+      <text class="pay-footer-sum">合计 ¥{{selectedAmountText}}</text>
+    </view>
+    <button
+      class="op primary pay-footer-btn"
+      bindtap="batchPay"
+      disabled="{{!selectedIds.length}}"
+    >去支付</button>
+  </view>
+</view>

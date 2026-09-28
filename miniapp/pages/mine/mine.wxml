@@ -1,0 +1,193 @@
+<view class="mine">
+  <!-- 访客态已不可进入本页（tabBar 隐藏 + 登录成功后回首页）；未登录会被 refresh 重定向到首页 -->
+  <block wx:if="{{loggedIn}}">
+    <view class="hero">
+      <view class="hero-top">
+        <view class="name-row" catchtap="editRealName" hover-class="tap">
+          <text class="name">{{personName || '设置姓名'}}</text>
+          <text class="edit">修改</text>
+        </view>
+        <view class="switch" catchtap="openPicker" hover-class="tap">
+          <text>切换身份 / 房屋</text>
+        </view>
+      </view>
+      <view class="id-card" catchtap="openPicker" hover-class="tap">
+        <view class="id-main">
+          <text class="addr">{{addressLine || displayName}}</text>
+          <text class="role" wx:if="{{roleLine}}">{{roleLine}}</text>
+          <text class="role" wx:else>点卡片可切换身份或房屋</text>
+        </view>
+        <view class="id-chevron"></view>
+      </view>
+    </view>
+
+    <view class="main">
+      <view class="bind-card" wx:if="{{showMyRooms && !hasRooms}}" bindtap="goAuth" hover-class="tap">
+        <view class="bind-body">
+          <text class="bind-title">尚未绑定房屋</text>
+          <text class="bind-desc">完成住户认证后即可使用缴费、报修等服务</text>
+        </view>
+        <text class="bind-link">去认证</text>
+      </view>
+
+      <view class="sec">
+        <view class="sec-hd">
+          <text class="sec-title">待办</text>
+          <text class="sec-count" wx:if="{{todos.length}}">{{todos.length}}</text>
+        </view>
+        <view class="panel" wx:if="{{todos.length}}">
+          <view
+            class="row"
+            wx:for="{{todos}}"
+            wx:key="id"
+            data-todo="{{item}}"
+            bindtap="onTapTodo"
+            hover-class="tap"
+          >
+            <view class="row-ico tone-c"><view class="i i-clock i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">{{item.title}}</text>
+              <text class="row-desc" wx:if="{{item.content}}">{{item.content}}</text>
+              <text class="row-hint" wx:if="{{item.hint.length}}">{{item.hint}}</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+        </view>
+        <view wx:else class="empty">
+          <text class="empty-desc">暂无待办</text>
+        </view>
+      </view>
+
+      <!-- 住户身份：个人记录 -->
+      <view class="sec" wx:if="{{showResidentRecords}}">
+        <view class="sec-hd">
+          <text class="sec-title">记录查询</text>
+        </view>
+        <view class="panel">
+          <view class="row" bindtap="goServiceRecords" hover-class="tap">
+            <view class="row-ico tone-b"><view class="i i-fix i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">报事报修记录</text>
+              <text class="row-desc">报修进度与投诉建议回复</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" bindtap="goBills" hover-class="tap">
+            <view class="row-ico tone-a"><view class="i i-money i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">缴费记录</text>
+              <text class="row-desc">已缴账单与预缴实付</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" bindtap="goApprovalRecords" hover-class="tap">
+            <view class="row-ico tone-a"><view class="i i-check i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">审批记录</text>
+              <text class="row-desc">住户认证 / 房屋变更</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" bindtap="goVotes" hover-class="tap">
+            <view class="row-ico tone-c"><view class="i i-vote i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">投票记录</text>
+              <text class="row-desc">议题与表决结果</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 物业 / 平台身份：工作记录（与首页工作台一致） -->
+      <view class="sec" wx:if="{{showStaffWorkRecords}}">
+        <view class="sec-hd">
+          <text class="sec-title">工作记录</text>
+        </view>
+        <view class="panel">
+          <view class="row" bindtap="goStaffTickets" hover-class="tap">
+            <view class="row-ico tone-b"><view class="i i-fix i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">报事报修处理</text>
+              <text class="row-desc">待办与已完成工单</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" wx:if="{{showStaffAuth}}" bindtap="goStaffAuth" hover-class="tap">
+            <view class="row-ico tone-a"><view class="i i-check i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">住户认证处理</text>
+              <text class="row-desc">待审与历史认证申请</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" wx:if="{{showStaffAuth}}" bindtap="goStaffPeople" hover-class="tap">
+            <view class="row-ico tone-c"><view class="i i-car i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">人员车辆处理</text>
+              <text class="row-desc">住户与车辆变更审核</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="sec" wx:if="{{isCommittee}}">
+        <view class="sec-hd">
+          <text class="sec-title">业委会记录</text>
+        </view>
+        <view class="panel">
+          <view class="row" bindtap="goNoticeMine" hover-class="tap">
+            <view class="row-ico tone-b"><view class="i i-notice i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">我发布的通知</text>
+              <text class="row-desc">处理我的 · 也可看业委会全部</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" bindtap="goVoteMine" hover-class="tap">
+            <view class="row-ico tone-c"><view class="i i-vote i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">我发起的投票</text>
+              <text class="row-desc">处理我的 · 也可看业委会全部</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="sec">
+        <view class="sec-hd">
+          <text class="sec-title">关于我们</text>
+        </view>
+        <view class="panel">
+          <view class="row" bindtap="goAboutUs" hover-class="tap">
+            <view class="row-ico tone-b"><view class="i i-doc i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">关于我们</text>
+              <text class="row-desc">了解邻里院</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+          <view class="row" bindtap="goCommunityApply" hover-class="tap">
+            <view class="row-ico tone-c"><view class="i i-room i-sm"></view></view>
+            <view class="row-body">
+              <text class="row-title">创建我的小区</text>
+              <text class="row-desc">申请开通新小区</text>
+            </view>
+            <view class="arrow"></view>
+          </view>
+        </view>
+      </view>
+
+      <button class="logout" bindtap="logout">退出登录</button>
+    </view>
+  </block>
+
+  <identity-picker
+    visible="{{pickerVisible}}"
+    identities="{{pickerList}}"
+    bind:close="closePicker"
+    bind:select="onPickIdentity"
+  />
+</view>

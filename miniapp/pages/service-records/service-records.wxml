@@ -1,0 +1,40 @@
+<view class="page">
+  <!-- 全部 + 报事报修 5 类筛选 -->
+  <scroll-view class="chips" scroll-x enable-flex>
+    <view
+      class="chip {{filter === item.key ? 'on' : ''}}"
+      wx:for="{{chips}}"
+      wx:key="key"
+      data-f="{{item.key}}"
+      bindtap="onFilter"
+      hover-class="tap"
+    >{{item.name}} {{item.count}}</view>
+  </scroll-view>
+
+  <view class="rec card" wx:for="{{list}}" wx:key="key" data-id="{{item.id}}" data-kind="{{item.kind}}" data-catkey="{{item.catKey}}" bindtap="openDetail">
+    <view class="rec-top">
+      <text class="cat cat-{{item.catKey}}">{{item.catLabel}}</text>
+      <text class="badge badge-mute">{{item.statusLabel}}</text>
+    </view>
+    <text class="rec-desc" wx:if="{{item.desc}}">{{item.desc}}</text>
+    <text class="rec-reply" wx:if="{{item.reply}}">物业回复：{{item.reply}}</text>
+    <view class="rec-foot">
+      <text class="rec-time">{{item.time}}</text>
+      <button
+        wx:if="{{item.canRate}}"
+        class="rate-btn"
+        data-id="{{item.id}}"
+        data-kind="{{item.kind}}"
+        data-catkey="{{item.catKey}}"
+        catchtap="goRate"
+      >去评价</button>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && !list.length}}" class="empty-box soft">
+    <text class="empty-desc">暂无该类记录</text>
+  </view>
+  <view wx:if="{{loading}}" class="empty-box soft">
+    <text class="empty-desc">加载中…</text>
+  </view>
+</view>

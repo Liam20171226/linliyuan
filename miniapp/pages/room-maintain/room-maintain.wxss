@@ -1,0 +1,85 @@
+.tip {
+  background: rgba(15, 61, 52, 0.08);
+  border: none;
+  box-shadow: none;
+}
+.tip-text {
+  display: block;
+  font-size: 26rpx;
+  color: var(--brand);
+  line-height: 1.5;
+  margin-bottom: 20rpx;
+}
+.mini {
+  margin-top: 8rpx !important;
+}
+.head .addr {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.head .role {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+.sec {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--brand);
+  margin-bottom: 12rpx;
+}
+.hint {
+  display: block;
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.45;
+  margin-bottom: 16rpx;
+}
+.line {
+  padding: 12rpx 0;
+  border-top: 1rpx solid rgba(31, 58, 50, 0.08);
+}
+.line-main {
+  display: block;
+  font-size: 26rpx;
+  color: #333333;
+}
+.line-sub {
+  display: block;
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 4rpx;
+}
+.empty {
+  font-size: 24rpx;
+  color: #999999;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.act {
+  padding: 22rpx 20rpx;
+  border-radius: 16rpx;
+  background: rgba(15, 61, 52, 0.05);
+}
+.act-hover {
+  background: rgba(15, 61, 52, 0.1);
+}
+.act-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+.act-hint {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #999999;
+}

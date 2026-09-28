@@ -1,0 +1,56 @@
+.form { margin-bottom: 24rpx; }
+.field-block { margin-bottom: 28rpx; }
+.field-block.row {
+  display: flex;
+  gap: 20rpx;
+}
+.half { flex: 1; }
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+.field-input {
+  height: 80rpx;
+  padding: 0 24rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+.field-area {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+.field-picker {
+  height: 80rpx;
+  line-height: 80rpx;
+  padding: 0 24rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.flex { flex: 1; }
+.opt-del {
+  font-size: 24rpx;
+  color: #a34b2c;
+  padding: 12rpx;
+}
+.link {
+  display: inline-block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--brand);
+  font-weight: 600;
+}

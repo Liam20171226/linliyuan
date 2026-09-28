@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="hint">预缴由物业按「约定月份 + 费项」登记；覆盖项后续不再出账；优惠不计入财务公开。</view>
+  <view class="card" wx:for="{{plans}}" wx:key="id">
+    <view class="row">
+      <text class="title">协议 #{{item.id}}</text>
+      <text class="status">{{item.status}}</text>
+    </view>
+    <view class="meta">原价 {{item.listAmount}} · 实付 {{item.cashAmount}} · 优惠 {{item.discountAmount}}</view>
+    <view class="meta">账期：{{item.billMonths}}</view>
+    <view class="meta">费项：{{item.feeCategories}}</view>
+  </view>
+  <view wx:if="{{!plans.length && !loading}}" class="empty-box">
+    <text>暂无预缴协议</text>
+  </view>
+</view>

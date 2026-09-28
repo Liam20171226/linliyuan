@@ -1,0 +1,252 @@
+.page-with-footer {
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+}
+
+.intro {
+  margin-bottom: 24rpx;
+  padding: 4rpx 4rpx 0;
+}
+.intro-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.intro-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+.pay-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: #ffffff;
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+.pay-all {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 4rpx 8rpx 0;
+}
+.pay-all-text {
+  font-size: 26rpx;
+  color: #333;
+}
+.pay-footer-left {
+  flex: 1;
+  min-width: 0;
+}
+.pay-footer-hint {
+  display: block;
+  font-size: 22rpx;
+  color: #5c6f68;
+}
+.pay-footer-sum {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--brand);
+}
+.pay-footer-btn {
+  flex: none !important;
+  width: 240rpx !important;
+}
+
+.room {
+  margin-bottom: 32rpx;
+}
+
+.room-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32rpx;
+  padding: 4rpx 4rpx 16rpx;
+}
+.room-hd-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+.chevron {
+  flex: none;
+  width: 32rpx;
+  margin-top: 4rpx;
+  font-size: 34rpx;
+  color: #b0b0b0;
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
+  line-height: 1;
+  text-align: center;
+}
+.chevron.open {
+  transform: rotate(-90deg);
+}
+.room-text {
+  flex: 1;
+  min-width: 0;
+}
+.room-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.room-meta {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #999;
+}
+.room-select {
+  flex: none;
+  padding: 14rpx 4rpx 14rpx 28rpx;
+  font-size: 26rpx;
+  color: var(--brand);
+  text-align: right;
+}
+
+.room-panel {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.bill {
+  padding: 28rpx;
+  position: relative;
+}
+.bill + .bill::before {
+  content: "";
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  top: 0;
+  height: 1rpx;
+  background: #eee;
+}
+.bill-on {
+  background: #f4faf7;
+}
+.bill-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.chk {
+  flex: none;
+}
+.bill-month {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.bill-tag {
+  flex: none;
+  font-size: 22rpx;
+  color: #888;
+  padding: 2rpx 10rpx;
+  background: #f2f2f2;
+  border-radius: 6rpx;
+}
+.bill-amount {
+  flex: none;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.fee-list {
+  margin-top: 14rpx;
+  padding-left: 48rpx;
+}
+.bill-plain .fee-list,
+.bill-plain .bill-note {
+  padding-left: 0;
+}
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+  padding: 6rpx 0;
+}
+.fee-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 24rpx;
+  color: #777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fee-amt {
+  flex: none;
+  font-size: 24rpx;
+  color: #444;
+}
+.fee-empty {
+  font-size: 22rpx;
+  color: #999;
+}
+.bill-note {
+  margin-top: 10rpx;
+  padding-left: 48rpx;
+  font-size: 22rpx;
+  color: #999;
+}
+
+.op {
+  margin: 0 !important;
+  height: 72rpx !important;
+  line-height: 72rpx !important;
+  font-size: 26rpx !important;
+  border-radius: 12rpx !important;
+  padding: 0 !important;
+}
+.op::after { border: none !important; }
+.op.primary {
+  background: var(--brand) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+.op[disabled] {
+  opacity: 0.45 !important;
+}
+
+.empty-box {
+  margin-top: 80rpx;
+  text-align: center;
+  padding: 40rpx 32rpx;
+}
+.empty-title {
+  display: block;
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+}
+.empty-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.5;
+}

@@ -1,0 +1,323 @@
+@import "styles/icons.wxss";
+
+/* 深绿轻奢：米白底、白卡轻投影、深绿主色、香槟金点缀
+   颜色/圆角/投影统一走变量，改风格只改这里 */
+page {
+  --ink: #16211D;
+  --muted: #6E7A74;
+  --line: #EDEBE6;
+  --surface: #FFFFFF;
+  --brand: #0F3D34;
+  --brand-2: #1A6B5C;
+  --accent: #C9A063;
+  --bg0: #F7F6F3;
+  --bg1: #F7F6F3;
+  --danger: #A8442F;
+  --warn: #B8791F;
+  --ok: #2E7D5B;
+  --radius-card: 24rpx;
+  --radius-ctrl: 16rpx;
+  --radius-tag: 8rpx;
+  --shadow-card: 0 6rpx 20rpx rgba(15, 61, 52, 0.06);
+  color: var(--ink);
+  font-size: 28rpx;
+  background: var(--bg0);
+  min-height: 100%;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+.page {
+  padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+/* 图标底色的三种调子（全局可用，配合 styles/icons.wxss 的 .i 图标） */
+.tone-a { background: rgba(15, 61, 52, 0.10); }   /* 深绿 */
+.tone-b { background: rgba(70, 110, 140, 0.12); }  /* 蓝灰 */
+.tone-c { background: rgba(201, 160, 99, 0.16); }  /* 香槟金 */
+
+/* 功能宫格（首页「常用服务」、物业工作台等复用） */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.grid-item {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 8rpx 28rpx;
+  box-sizing: border-box;
+}
+.grid-name {
+  font-size: 24rpx;
+  color: var(--ink);
+}
+
+/* 列表行图标：64rpx 圆角方块 + 32rpx 线性图标 */
+.row-ico {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.cell-group {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  border: none;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow-card);
+}
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 28rpx;
+  position: relative;
+}
+.cell + .cell::before {
+  content: "";
+  position: absolute;
+  left: 28rpx;
+  right: 0;
+  top: 0;
+  height: 1rpx;
+  background: #eee;
+}
+.cell:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+.cell-hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+.cell-body {
+  flex: 1;
+  min-width: 0;
+}
+.cell-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--ink);
+}
+.cell-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+}
+.cell-extra {
+  font-size: 24rpx;
+  color: var(--muted);
+  margin-right: 8rpx;
+  max-width: 280rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cell-arrow {
+  width: 14rpx;
+  height: 14rpx;
+  border-top: 3rpx solid #ccc;
+  border-right: 3rpx solid #ccc;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.btn-main,
+.btn-ghost {
+  width: 100% !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 88rpx;
+  line-height: 84rpx;
+  box-sizing: border-box;
+  border-width: 2rpx !important;
+  border-style: solid !important;
+  border-radius: 12rpx !important;
+  font-weight: 600;
+  font-size: 30rpx;
+  text-align: center;
+}
+.btn-main {
+  background: var(--brand) !important;
+  color: #ffffff !important;
+  letter-spacing: 0.02em;
+  border-color: transparent !important;
+}
+.btn-main::after { border: none !important; }
+.btn-main[disabled] {
+  opacity: 0.45;
+}
+
+.btn-ghost {
+  background: #ffffff !important;
+  color: var(--brand) !important;
+  border-color: rgba(15, 61, 52, 0.35) !important;
+}
+.btn-ghost::after { border: none !important; }
+
+.btn-ghost.danger,
+.btn-danger {
+  color: var(--danger) !important;
+  border-color: rgba(196, 86, 86, 0.35) !important;
+}
+
+.btn-inline {
+  width: auto !important;
+  display: inline-block !important;
+  height: 64rpx;
+  line-height: 60rpx;
+  padding: 0 28rpx !important;
+  font-size: 26rpx;
+  border-radius: 10rpx !important;
+}
+
+.field-label {
+  display: block;
+  font-size: 24rpx;
+  color: var(--muted);
+  margin-bottom: 12rpx;
+}
+.field-input {
+  display: block;
+  width: 100%;
+  height: 88rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+  margin: 0;
+  box-sizing: border-box;
+  background: #F5F6F8;
+  border: 1rpx solid transparent;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: var(--ink);
+}
+.field-block {
+  margin-bottom: 28rpx;
+}
+.field-picker {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  background: #F5F6F8;
+  border: 1rpx solid transparent;
+  border-radius: 12rpx;
+  color: var(--ink);
+  font-size: 28rpx;
+}
+.field-area {
+  display: block;
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  background: #F5F6F8;
+  border: 1rpx solid transparent;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 8rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+}
+.badge-warn {
+  color: #b86a1c;
+  background: rgba(184, 106, 28, 0.1);
+}
+.badge-ok {
+  color: #1a7a5c;
+  background: rgba(15, 61, 52, 0.1);
+}
+.badge-mute {
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.empty-box {
+  padding: 80rpx 40rpx;
+  text-align: center;
+}
+.empty-title {
+  display: block;
+  font-size: 28rpx;
+  color: var(--ink);
+  font-weight: 600;
+}
+.empty-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.empty-action {
+  display: inline-block;
+  margin-top: 28rpx;
+  padding: 16rpx 36rpx;
+  border-radius: 12rpx;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.section-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 650;
+  color: #1a1a1a;
+  margin: 8rpx 0 16rpx;
+}
+
+.safe-bottom {
+  height: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid #eee;
+  box-sizing: border-box;
+}
+.footer-bar button,
+.footer-bar .btn-main,
+.footer-bar .btn-ghost {
+  width: 100% !important;
+  display: block !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.page-with-footer {
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+}

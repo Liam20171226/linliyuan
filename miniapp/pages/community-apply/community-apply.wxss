@@ -1,0 +1,48 @@
+.tip {
+  margin-bottom: 20rpx;
+  background: rgba(15, 61, 52, 0.08);
+  border: none;
+  box-shadow: none;
+}
+.tip-text {
+  font-size: 24rpx;
+  color: var(--brand);
+  line-height: 1.55;
+}
+.empty-box.soft {
+  padding: 36rpx 24rpx;
+  margin-bottom: 24rpx;
+  text-align: center;
+}
+.count-grid {
+  margin-top: 8rpx;
+  padding-top: 8rpx;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx 20rpx;
+}
+.count-item {
+  width: calc(50% - 10rpx);
+  box-sizing: border-box;
+}
+.count-label {
+  display: block;
+  font-size: 24rpx;
+  color: #5a6b66;
+  margin-bottom: 8rpx;
+}
+.count-input {
+  text-align: left;
+}
+.count-hint {
+  width: 100%;
+  font-size: 22rpx;
+  color: var(--brand);
+  opacity: 0.75;
+  line-height: 1.4;
+}
+.cell-desc.muted {
+  opacity: 0.7;
+  font-size: 22rpx;
+}

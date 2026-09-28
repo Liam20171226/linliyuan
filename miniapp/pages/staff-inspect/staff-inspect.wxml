@@ -1,0 +1,45 @@
+<view class="page">
+  <view class="seg">
+    <view class="seg-item {{tab === 'open' ? 'on' : ''}}" data-tab="open" bindtap="onTab" hover-class="tap">
+      待办 {{openList.length}}
+    </view>
+    <view class="seg-item {{tab === 'done' ? 'on' : ''}}" data-tab="done" bindtap="onTab" hover-class="tap">
+      已完成 {{doneList.length}}
+    </view>
+  </view>
+
+  <block wx:if="{{tab === 'open'}}">
+    <view class="rec card" wx:for="{{openList}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob" hover-class="tap">
+      <view class="rec-top">
+        <text class="cat">第{{item.seqNo}}轮</text>
+        <text class="badge badge-mute">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.title}}</text>
+      <text class="rec-sub">进度 {{item.progress}}{{item.assignee ? ' · ' + item.assignee : ''}}</text>
+      <text class="rec-sub claim" wx:if="{{item.canClaim}}">待接单</text>
+      <text class="rec-time">{{item.time}}</text>
+    </view>
+    <view wx:if="{{!loading && !openList.length}}" class="empty-box soft">
+      <text class="empty-desc">暂无待办巡检</text>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="rec card" wx:for="{{doneList}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob" hover-class="tap">
+      <view class="rec-top">
+        <text class="cat">第{{item.seqNo}}轮</text>
+        <text class="badge badge-ok">{{item.statusLabel}}</text>
+      </view>
+      <text class="rec-desc">{{item.title}}</text>
+      <text class="rec-sub">进度 {{item.progress}}</text>
+      <text class="rec-time">{{item.time}}</text>
+    </view>
+    <view wx:if="{{!loading && !doneList.length}}" class="empty-box soft">
+      <text class="empty-desc">还没有已完成的巡检</text>
+    </view>
+  </block>
+
+  <view wx:if="{{loading}}" class="empty-box soft">
+    <text class="empty-desc">加载中…</text>
+  </view>
+</view>

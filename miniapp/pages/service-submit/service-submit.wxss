@@ -1,0 +1,2 @@
+@import "../../styles/photo-attach.wxss";
+/* 复用全局 page / card / field 样式 */

@@ -1,0 +1,123 @@
+<view class="page page-with-footer" wx:if="{{!loading}}">
+  <view class="card tip">
+    <text class="tip-text">{{title}}：提交后由物业审核，通过后生效。</text>
+  </view>
+
+  <view class="card" wx:if="{{type === 'ADD_MEMBER'}}">
+    <view class="field">
+      <text class="label">手机号</text>
+      <input
+        class="input"
+        type="number"
+        maxlength="11"
+        value="{{mobile}}"
+        placeholder="输入 11 位手机号，已有账号将自动带入姓名"
+        bindinput="onMobile"
+      />
+      <text class="hint" wx:if="{{lookupHint}}">{{lookupHint}}</text>
+    </view>
+    <view class="field">
+      <text class="label">姓名</text>
+      <input
+        class="input {{nameLocked ? 'locked' : ''}}"
+        value="{{name}}"
+        placeholder="真实姓名"
+        disabled="{{nameLocked}}"
+        bindinput="onName"
+      />
+    </view>
+    <view class="field">
+      <text class="label">角色</text>
+      <picker mode="selector" range="{{roleLabels}}" value="{{roleIndex}}" bindchange="onRole">
+        <view class="picker">{{roleLabels[roleIndex]}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <text class="label">备注（选填）</text>
+      <textarea
+        class="area"
+        value="{{applyMessage}}"
+        maxlength="200"
+        placeholder="可填写与该成员的关系等说明"
+        bindinput="onMsg"
+        auto-height
+      />
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card" wx:if="{{type === 'REMOVE_MEMBER'}}">
+      <view class="field" wx:if="{{members.length}}">
+        <text class="label">选择成员</text>
+        <picker mode="selector" range="{{members}}" range-key="label" value="{{memberIndex}}" bindchange="onMember">
+          <view class="picker">{{members[memberIndex].label}}</view>
+        </picker>
+      </view>
+      <text class="empty" wx:else>本房无可移除成员</text>
+    </view>
+
+    <view class="card" wx:elif="{{type === 'ADD_VEHICLE'}}">
+      <view class="field">
+        <text class="label">车牌号</text>
+        <input class="input" value="{{plateNo}}" placeholder="如 京A12345" bindinput="onPlate" />
+      </view>
+      <view class="field">
+        <text class="label">车位（可选）</text>
+        <picker mode="selector" range="{{freeSpaceLabels}}" value="{{freeSpaceIndex}}" bindchange="onFreeSpace">
+          <view class="picker">{{freeSpaceLabels[freeSpaceIndex]}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="card" wx:elif="{{type === 'REMOVE_VEHICLE'}}">
+      <view class="field" wx:if="{{vehicles.length}}">
+        <text class="label">选择车辆</text>
+        <picker mode="selector" range="{{vehicles}}" range-key="label" value="{{vehicleIndex}}" bindchange="onVehicle">
+          <view class="picker">{{vehicles[vehicleIndex].label}}</view>
+        </picker>
+      </view>
+      <text class="empty" wx:else>本房无车辆</text>
+    </view>
+
+    <view class="card" wx:elif="{{type === 'LINK_PARKING'}}">
+      <view class="field" wx:if="{{unlinked.length}}">
+        <text class="label">未挂房车位</text>
+        <picker mode="selector" range="{{unlinked}}" range-key="label" value="{{unlinkedIndex}}" bindchange="onUnlinked">
+          <view class="picker">{{unlinked[unlinkedIndex].label}}</view>
+        </picker>
+      </view>
+      <text class="empty" wx:else>暂无未挂房车位，请联系物业</text>
+    </view>
+
+    <view class="card" wx:elif="{{type === 'UNLINK_PARKING'}}">
+      <view class="field" wx:if="{{parkings.length}}">
+        <text class="label">本房车位</text>
+        <picker mode="selector" range="{{parkings}}" range-key="label" value="{{parkingIndex}}" bindchange="onParking">
+          <view class="picker">{{parkings[parkingIndex].label}}</view>
+        </picker>
+      </view>
+      <text class="empty" wx:else>本房无已挂车位</text>
+    </view>
+
+    <view class="card">
+      <view class="field">
+        <text class="label">备注（选填）</text>
+        <textarea
+          class="area"
+          value="{{applyMessage}}"
+          maxlength="200"
+          placeholder="补充说明"
+          bindinput="onMsg"
+          auto-height
+        />
+      </view>
+    </view>
+  </block>
+
+  <view class="footer-bar">
+    <button class="btn-main" loading="{{submitting}}" bindtap="submit">提交申请</button>
+  </view>
+</view>
+<view class="page" wx:else>
+  <text class="muted">加载中…</text>
+</view>

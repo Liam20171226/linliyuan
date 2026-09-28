@@ -1,0 +1,73 @@
+<view class="page" wx:if="{{!loading && job}}">
+  <view class="card head">
+    <text class="title">{{job.planTitle}}</text>
+    <view class="meta-row">
+      <text class="badge {{done ? 'badge-ok' : 'badge-mute'}}">{{job.statusLabel}}</text>
+      <text class="meta">第{{job.seqNo}}轮 · {{progressText}}</text>
+    </view>
+    <text class="note" wx:if="{{job.requirementNote}}">要求：{{job.requirementNote}}</text>
+    <text class="note" wx:if="{{job.ordered}}">需按顺序巡检</text>
+    <text class="note" wx:if="{{job.assigneeName}}">执行人：{{job.assigneeName}}</text>
+  </view>
+
+  <view class="actions" wx:if="{{!done}}">
+    <button
+      class="btn primary"
+      wx:if="{{canClaim}}"
+      loading="{{claiming}}"
+      bindtap="claim"
+      hover-class="tap"
+    >接单开始巡检</button>
+    <button
+      class="btn primary"
+      wx:if="{{mine}}"
+      bindtap="doScan"
+      hover-class="tap"
+    >扫码巡检</button>
+  </view>
+  <view class="claim-hint" wx:if="{{claimHint}}">{{claimHint}}</view>
+
+  <view class="sec-title">点位清单</view>
+  <view class="card spot" wx:for="{{spots}}" wx:key="id">
+    <view class="spot-top">
+      <text class="spot-name">{{item.name}}</text>
+      <text class="badge {{item.visited ? 'badge-ok' : 'badge-mute'}}">{{item.visited ? '已巡' : '待巡'}}</text>
+    </view>
+    <text class="spot-addr">{{item.address}}</text>
+    <text class="spot-cats" wx:if="{{item.cats}}">{{item.cats}}</text>
+    <text class="spot-time" wx:if="{{item.visited}}">{{item.scannedAtLabel}}{{item.note ? ' · ' + item.note : ''}}</text>
+  </view>
+
+  <view wx:if="{{!spots.length}}" class="empty-box soft">
+    <text class="empty-desc">计划未配置点位</text>
+  </view>
+</view>
+
+<view class="empty-box soft" wx:elif="{{loading}}">
+  <text class="empty-desc">加载中…</text>
+</view>
+
+<!-- 扫码后补拍确认 -->
+<view class="mask" wx:if="{{scanOpen}}" catchtouchmove="noop">
+  <view class="sheet">
+    <text class="sheet-title">确认巡检 · {{scanSpotName}}</text>
+    <text class="sheet-sub">请现场拍照（必填），记录可选</text>
+    <view class="photo-box" bindtap="choosePhoto" hover-class="tap">
+      <image wx:if="{{photoLocal}}" class="photo" src="{{photoLocal}}" mode="aspectFill" />
+      <view wx:else class="photo-ph">
+        <text>点击拍照 / 选图</text>
+      </view>
+    </view>
+    <textarea
+      class="note-input"
+      placeholder="巡检记录（可选）"
+      maxlength="200"
+      value="{{note}}"
+      bindinput="onNote"
+    />
+    <view class="sheet-actions">
+      <button class="btn ghost" bindtap="closeScan">取消</button>
+      <button class="btn primary" loading="{{submitting}}" bindtap="submitVisit">提交</button>
+    </view>
+  </view>
+</view>

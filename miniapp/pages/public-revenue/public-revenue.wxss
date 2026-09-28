@@ -1,0 +1,96 @@
+.tabs {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+  padding: 6rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--line);
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 26rpx;
+  color: #999999;
+  border-radius: 12rpx;
+}
+.tab.on {
+  background: var(--brand);
+  color: #ffffff;
+  font-weight: 600;
+}
+.hint {
+  margin-bottom: 20rpx;
+  padding: 16rpx 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.5;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+}
+.row-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.title {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.badge {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #c45c26;
+  background: rgba(196, 92, 38, 0.1);
+  padding: 6rpx 14rpx;
+  border-radius: 8rpx;
+}
+.amount {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--brand);
+}
+.meta {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #999999;
+}
+.remark {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.5;
+}
+.remark.danger { color: #a34b2c; }
+.ops {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+.op {
+  flex: 1;
+  margin: 0 !important;
+  height: 72rpx !important;
+  line-height: 72rpx !important;
+  font-size: 26rpx !important;
+  border-radius: 12rpx !important;
+  padding: 0 !important;
+}
+.op::after { border: none !important; }
+.op.ghost {
+  background: transparent !important;
+  color: var(--brand) !important;
+  border: 2rpx solid rgba(15, 61, 52, 0.25) !important;
+}
+.op.primary {
+  background: var(--brand) !important;
+  color: #ffffff !important;
+}

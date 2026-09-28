@@ -1,0 +1,25 @@
+<template name="photoAttach">
+  <view class="field-block photo-block">
+    <text class="field-label">照片附件（选填，最多 {{maxPhotos}} 张）</text>
+    <view class="photo-grid">
+      <view class="photo-cell" wx:for="{{photos}}" wx:key="id">
+        <image
+          class="photo-thumb"
+          src="{{item.localPath}}"
+          mode="aspectFill"
+          data-url="{{item.localPath}}"
+          bindtap="previewPhoto"
+        />
+        <view class="photo-del" data-id="{{item.id}}" catchtap="removePhoto">×</view>
+      </view>
+      <view
+        class="photo-cell photo-add"
+        wx:if="{{photos.length < maxPhotos}}"
+        bindtap="choosePhotos"
+      >
+        <text class="photo-add-plus">＋</text>
+        <text class="photo-add-tip">添加照片</text>
+      </view>
+    </view>
+  </view>
+</template>

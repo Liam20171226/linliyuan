@@ -1,0 +1,65 @@
+<view class="page page-with-footer">
+  <view wx:if="{{loading}}" class="state">
+    <text class="state-desc">加载中…</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="state">
+    <text class="state-title">无法打开</text>
+    <text class="state-desc">{{error}}</text>
+  </view>
+
+  <scroll-view wx:else class="scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="article">
+      <text class="title">{{title}}</text>
+      <view class="meta">
+        <text>{{sourceLabel}}</text>
+        <text class="sep">·</text>
+        <text>{{statusLabel}}</text>
+      </view>
+      <text class="range" wx:if="{{rangeLabel}}">{{rangeLabel}}</text>
+      <text class="bg">{{background || '请选择选项后点击确认完成投票'}}</text>
+
+      <view class="card room-card">
+        <view class="field-block" wx:if="{{roomOptions.length}}">
+          <text class="field-label">投票房屋（业主）</text>
+          <picker mode="selector" range="{{roomOptions}}" range-key="label" bindchange="onRoomPick">
+            <view class="field-picker">{{roomLabel || '请选择房屋'}}</view>
+          </picker>
+          <text class="room-hint" wx:if="{{roomOptions.length > 1}}">
+            每套房可投 1 票；已投 {{votedRoomCount}}/{{roomOptions.length}} 套，可切换其他房屋继续投
+          </text>
+        </view>
+        <view class="field-block" wx:else>
+          <text class="field-label">投票房屋</text>
+          <text class="hint">需业主房屋身份方可表决</text>
+        </view>
+      </view>
+
+      <text class="sec-lab">选项</text>
+      <view
+        class="opt {{item.selected ? 'on' : ''}} {{locked ? 'is-locked' : ''}}"
+        wx:for="{{options}}"
+        wx:key="id"
+        data-oid="{{item.id}}"
+        bindtap="selectOption"
+      >
+        <text class="opt-text">{{item.optionText}}</text>
+        <text class="opt-tag" wx:if="{{item.locked}}">已确认</text>
+        <text class="opt-tag" wx:elif="{{item.selected}}">已选</text>
+      </view>
+      <view wx:if="{{!options.length}}" class="empty-opts">暂无选项</view>
+      <text class="foot-hint" wx:if="{{locked}}">本房屋已确认投票，不可修改</text>
+      <text class="foot-hint" wx:elif="{{closed}}">投票已结束</text>
+      <text class="foot-hint" wx:else>请选择选项后点击确认；确认后不可修改</text>
+    </view>
+  </scroll-view>
+
+  <view class="footer-bar" wx:if="{{!loading && !error && !locked && !closed && roomOptions.length}}">
+    <button
+      class="btn-main"
+      bindtap="confirm"
+      disabled="{{!canConfirm || casting}}"
+      loading="{{casting}}"
+    >确认投票</button>
+  </view>
+</view>

@@ -1,0 +1,26 @@
+<view class="page">
+  <text class="hint">本小区全部工单 · 只读 · 含报修与投诉建议</text>
+  <view class="cell-group" wx:if="{{list.length}}">
+    <view
+      class="cell"
+      wx:for="{{list}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-kind="{{item.navKind}}"
+      bindtap="open"
+      hover-class="cell-hover"
+    >
+      <view class="cell-body">
+        <text class="cell-title">{{item.kindLabel}} · {{item.statusLabel}}</text>
+        <text class="cell-desc">{{item.desc}}</text>
+        <text class="cell-desc" wx:if="{{item.contactLine}}">{{item.contactLine}} · {{item.timeLabel}}</text>
+        <text class="cell-desc" wx:else>{{item.timeLabel}}</text>
+      </view>
+      <view class="cell-arrow"></view>
+    </view>
+  </view>
+  <view wx:elif="{{!loading}}" class="empty-box">
+    <text class="empty-title">暂无工单</text>
+    <text class="empty-desc">住户提交后会出现在这里</text>
+  </view>
+</view>

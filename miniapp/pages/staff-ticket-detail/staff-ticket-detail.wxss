@@ -1,0 +1,225 @@
+@import "../../styles/photo-attach.wxss";
+
+.hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.cat {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+.desc {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 27rpx;
+  color: #3A4741;
+  line-height: 1.6;
+}
+.sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.sec {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 12rpx;
+}
+
+.flow {
+  display: flex;
+  gap: 14rpx;
+  padding: 10rpx 0;
+  position: relative;
+}
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-top: 10rpx;
+  border-radius: 50%;
+  background: var(--brand);
+  flex-shrink: 0;
+}
+.flow-body { flex: 1; min-width: 0; }
+.flow-line { font-size: 25rpx; color: var(--ink); line-height: 1.5; }
+.flow-remark {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.reply {
+  padding: 14rpx 18rpx;
+  margin-bottom: 10rpx;
+  background: var(--bg0);
+  border-radius: var(--radius-ctrl);
+}
+.reply-text { font-size: 25rpx; color: #3A4741; line-height: 1.55; }
+
+.area {
+  width: 100%;
+  min-height: 130rpx;
+  padding: 18rpx 20rpx;
+  box-sizing: border-box;
+  background: var(--bg0);
+  border-radius: var(--radius-ctrl);
+  font-size: 26rpx;
+  margin-bottom: 16rpx;
+}
+
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+.actions .btn-ghost,
+.actions .btn-finish { flex: 1; width: auto !important; }
+
+/* 提交回复：白底描边次要操作 */
+.btn-reply {
+  margin-top: 20rpx !important;
+}
+
+/* 处理完成：实心琥珀，与「提交回复」描边按钮明显区分 */
+.btn-finish {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 88rpx;
+  line-height: 84rpx;
+  box-sizing: border-box;
+  border-width: 2rpx !important;
+  border-style: solid !important;
+  border-radius: 12rpx !important;
+  font-weight: 600;
+  font-size: 30rpx;
+  text-align: center;
+  background: #C9A063 !important;
+  color: #1A2420 !important;
+  border-color: transparent !important;
+  letter-spacing: 0.02em;
+}
+.btn-finish::after { border: none !important; }
+.btn-finish[disabled] { opacity: 0.45; }
+
+.mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(20, 28, 26, 0.45);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.sheet-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+.member {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 20rpx 18rpx;
+  border-radius: var(--radius-ctrl);
+  background: var(--bg0);
+  margin-bottom: 12rpx;
+}
+.member.on {
+  background: rgba(15, 61, 52, 0.10);
+}
+.member-name { font-size: 27rpx; color: var(--ink); }
+.member-role { font-size: 22rpx; color: var(--muted); margin-left: auto; }
+.cancel { margin-top: 12rpx; }
+
+.claim-card {
+  border: 1rpx solid rgba(201, 160, 99, 0.5);
+  background: rgba(201, 160, 99, 0.08);
+}
+.claim-tip {
+  display: block;
+  font-size: 25rpx;
+  color: var(--ink);
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+/* 订单过程时间线 */
+.tl { margin-top: 4rpx; }
+.tl-item {
+  display: flex;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+  position: relative;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-dot {
+  width: 16rpx;
+  height: 16rpx;
+  margin-top: 8rpx;
+  margin-left: 4rpx;
+  border-radius: 50%;
+  background: var(--brand);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.tl-dot.tl-CREATE { background: var(--brand); }
+.tl-dot.tl-DISPATCH { background: var(--accent); }
+.tl-dot.tl-REPLY { background: #1A6B5C; }
+.tl-dot.tl-COMPLETE { background: var(--ok); }
+.tl-dot.tl-RATE { background: var(--warn); }
+.tl-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 11rpx;
+  top: 24rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: var(--line);
+}
+.tl-body { flex: 1; min-width: 0; }
+.tl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+.tl-title { font-size: 27rpx; font-weight: 600; color: var(--ink); }
+.tl-time { font-size: 22rpx; color: var(--muted); flex-shrink: 0; }
+.tl-op { display: block; margin-top: 4rpx; font-size: 23rpx; color: var(--brand); }
+.tl-content {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 25rpx;
+  color: #3A4741;
+  line-height: 1.6;
+}
+.tl-target { display: block; margin-top: 4rpx; font-size: 23rpx; color: var(--muted); }
+.tl-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+.tl-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: var(--bg0);
+}

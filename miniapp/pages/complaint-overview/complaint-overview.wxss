@@ -1,0 +1,13 @@
+.hint {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 22rpx;
+  color: #999999;
+}
+.cell-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

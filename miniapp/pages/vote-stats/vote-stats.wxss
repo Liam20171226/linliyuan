@@ -1,0 +1,117 @@
+.page {
+  min-height: 100vh;
+  background: #fff;
+  box-sizing: border-box;
+}
+.scroll { height: 100vh; }
+.state {
+  padding: 120rpx 48rpx;
+  text-align: center;
+}
+.state-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--brand);
+  margin-bottom: 12rpx;
+}
+.state-desc {
+  font-size: 26rpx;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.article {
+  padding: 36rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+.title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 650;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #9aa49e;
+}
+.sep { color: #c5cec9; }
+.total {
+  display: block;
+  margin: 28rpx 0 20rpx;
+  font-size: 26rpx;
+  color: #5c6f68;
+}
+.stat-row { margin-bottom: 22rpx; }
+.stat-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 8rpx;
+  font-size: 28rpx;
+}
+.stat-name { color: #2a4a3c; font-weight: 500; flex: 1; }
+.stat-n { color: #6a7a74; flex-shrink: 0; }
+.bar-track {
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: #eef3f0;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: var(--brand);
+  min-width: 0;
+}
+.sec-lab {
+  display: block;
+  margin: 36rpx 0 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+.ballot {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+.b-room {
+  display: block;
+  font-size: 28rpx;
+  color: #2a4a3c;
+  font-weight: 500;
+}
+.b-line {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: #5c6f68;
+}
+.b-time {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #9aa49e;
+}
+.empty {
+  padding: 24rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--muted);
+}
+.ops { margin-top: 40rpx; }
+.btn-danger {
+  margin: 0 !important;
+  height: 88rpx !important;
+  line-height: 88rpx !important;
+  font-size: 30rpx !important;
+  border-radius: 16rpx !important;
+  background: transparent !important;
+  color: #a34b2c !important;
+  border: 2rpx solid rgba(163, 75, 44, 0.35) !important;
+}
+.btn-danger::after { border: none !important; }

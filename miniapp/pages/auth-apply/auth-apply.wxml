@@ -1,0 +1,152 @@
+<view class="page page-with-footer">
+  <view class="card tip">
+    <text class="tip-text">先选地区与小区，再选房屋（可搜房号，或一次滚轮选栋/单元/层/房）。手机号沿用登录账号；业委会/物业请先在「我的」切换身份。</text>
+  </view>
+
+  <view class="card">
+    <view class="field-block">
+      <text class="field-label">所在地区</text>
+      <picker mode="multiSelector" range="{{regionRange}}" value="{{regionIndex}}" bindchange="onRegionChange" bindcolumnchange="onRegionColumnChange">
+        <view class="field-picker with-arrow">{{regionLabel || '请选择省 / 市 / 区'}}</view>
+      </picker>
+    </view>
+
+    <view class="field-block">
+      <text class="field-label">小区</text>
+      <picker
+        mode="selector"
+        range="{{communityNames}}"
+        value="{{communityIndex}}"
+        disabled="{{!communityNames.length}}"
+        bindchange="onCommunityPick"
+      >
+        <view class="field-picker with-arrow {{communityId ? '' : 'placeholder'}}">
+          {{communityId ? communityName : (selectedRegion ? (communityNames.length ? '请选择小区' : (communityLoading ? '加载小区中…' : '该地区暂无小区')) : '请先选择地区')}}
+        </view>
+      </picker>
+    </view>
+
+    <view class="field-block" wx:if="{{communityId}}">
+      <text class="field-label">房屋</text>
+      <view
+        class="field-picker with-arrow {{roomId ? '' : 'placeholder'}}"
+        bindtap="openRoomSheet"
+      >
+        {{roomId ? roomPath : (spaceReady ? '请选择房屋' : (spaceLoading ? '加载房屋中…' : '该小区暂无房屋'))}}
+      </view>
+    </view>
+
+    <view class="field-block">
+      <text class="field-label">姓名</text>
+      <view wx:if="{{nameLocked}}" class="field-picker static">{{applicantName}}</view>
+      <input
+        wx:else
+        class="field-input"
+        value="{{applicantName}}"
+        bindinput="onName"
+        placeholder="与证件一致"
+      />
+      <text class="field-hint" wx:if="{{nameLocked}}">账号已有姓名，改名请到「我的」</text>
+      <text class="field-hint" wx:else>初次认证请填写真实姓名</text>
+    </view>
+    <view class="field-block">
+      <text class="field-label">申请角色</text>
+      <picker mode="selector" range="{{roles}}" range-key="label" bindchange="onRole">
+        <view class="field-picker with-arrow">{{roleLabel}}</view>
+      </picker>
+    </view>
+    <view class="field-block" wx:if="{{applyRole === 'OWNER'}}">
+      <text class="field-label">身份证号（业主必填）</text>
+      <input class="field-input" value="{{applicantIdCardNo}}" bindinput="onIdCard" placeholder="业主认证必填" />
+    </view>
+    <view class="field-block" wx:if="{{applyRole === 'OWNER'}}">
+      <text class="field-label">产权证明（图片，最多 3 张）</text>
+      <view class="proof-grid">
+        <view class="proof-item" wx:for="{{proofFiles}}" wx:key="id">
+          <image class="proof-img" src="{{item.localPath}}" mode="aspectFill" bindtap="previewProof" data-url="{{item.localPath}}" />
+          <view class="proof-del" data-id="{{item.id}}" catchtap="removeProof">×</view>
+        </view>
+        <view class="proof-add" wx:if="{{proofFiles.length < 3}}" bindtap="addProof">
+          <text class="proof-add-plus">+</text>
+          <text class="proof-add-text">添加图片</text>
+        </view>
+      </view>
+      <text class="field-hint">请上传产权证明照片（jpg/png），提交前可预览、删除</text>
+    </view>
+    <view class="field-block">
+      <text class="field-label">留言（选填）</text>
+      <input class="field-input" value="{{applyMessage}}" bindinput="onMsg" placeholder="补充说明" />
+    </view>
+  </view>
+
+  <view class="footer-bar">
+    <button class="btn-main" bindtap="submit" loading="{{submitting}}">提交认证</button>
+  </view>
+
+  <view class="mask" wx:if="{{roomSheetVisible}}" catchtouchmove="noop" bindtap="closeRoomSheet">
+    <view class="sheet" catchtap="noop">
+      <view class="handle"></view>
+      <view class="sheet-head">
+        <text class="sheet-title">选择房屋</text>
+        <text class="sheet-close" bindtap="closeRoomSheet">关闭</text>
+      </view>
+      <text class="sheet-sub">{{communityName}} · 可搜房号或滚轮选择</text>
+
+      <view class="sheet-search">
+        <input
+          class="sheet-search-input"
+          value="{{roomKeyword}}"
+          bindinput="onRoomKeyword"
+          placeholder="输入房号，如 101"
+          confirm-type="search"
+        />
+      </view>
+
+      <block wx:if="{{roomKeyword}}">
+        <scroll-view scroll-y class="sheet-list" enhanced show-scrollbar="{{false}}">
+          <view wx:if="{{roomHits.length === 0}}" class="sheet-empty">无匹配房屋，可清空关键字用滚轮选</view>
+          <view
+            wx:for="{{roomHits}}"
+            wx:key="roomId"
+            class="sheet-row {{roomId === item.roomId ? 'on' : ''}}"
+            data-id="{{item.roomId}}"
+            bindtap="pickRoomHit"
+          >
+            <text class="sheet-row-title">{{item.path}}</text>
+          </view>
+        </scroll-view>
+      </block>
+
+      <block wx:else>
+        <view class="cascade-wrap" wx:if="{{spaceReady}}">
+          <view class="cascade-labels">
+            <text>楼栋</text>
+            <text>单元</text>
+            <text>楼层</text>
+            <text>房号</text>
+          </view>
+          <picker-view
+            class="cascade-view"
+            value="{{spaceIndex}}"
+            bindchange="onSpacePickerChange"
+          >
+            <picker-view-column>
+              <view wx:for="{{spaceRange[0]}}" wx:key="*this" class="cascade-item">{{item}}</view>
+            </picker-view-column>
+            <picker-view-column>
+              <view wx:for="{{spaceRange[1]}}" wx:key="*this" class="cascade-item">{{item}}</view>
+            </picker-view-column>
+            <picker-view-column>
+              <view wx:for="{{spaceRange[2]}}" wx:key="*this" class="cascade-item">{{item}}</view>
+            </picker-view-column>
+            <picker-view-column>
+              <view wx:for="{{spaceRange[3]}}" wx:key="*this" class="cascade-item">{{item}}</view>
+            </picker-view-column>
+          </picker-view>
+          <button class="sheet-confirm" bindtap="confirmSpacePick">确认选择</button>
+        </view>
+        <view wx:else class="sheet-empty">暂无可选房屋</view>
+      </block>
+    </view>
+  </view>
+</view>

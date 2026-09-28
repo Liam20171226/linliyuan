@@ -1,0 +1,72 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/mine/mine",
+    "pages/login/login",
+    "pages/community-apply/community-apply",
+    "pages/auth-apply/auth-apply",
+    "pages/auth-records/auth-records",
+    "pages/auth-detail/auth-detail",
+    "pages/approval-records/approval-records",
+    "pages/room-maintain/room-maintain",
+    "pages/room-change-apply/room-change-apply",
+    "pages/change-records/change-records",
+    "pages/bills/bills",
+    "pages/prepaid/prepaid",
+    "pages/finance-public/finance-public",
+    "pages/service-desk/service-desk",
+    "pages/service-submit/service-submit",
+    "pages/repairs/repairs",
+    "pages/complaints/complaints",
+    "pages/service-records/service-records",
+    "pages/service-detail/service-detail",
+    "pages/staff-tickets/staff-tickets",
+    "pages/staff-ticket-detail/staff-ticket-detail",
+    "pages/staff-inspect/staff-inspect",
+    "pages/staff-inspect-detail/staff-inspect-detail",
+    "pages/staff-auth/staff-auth",
+    "pages/staff-people/staff-people",
+    "pages/notices/notices",
+    "pages/notice-detail/notice-detail",
+    "pages/about-us/about-us",
+    "pages/notice-manage/notice-manage",
+    "pages/notice-create/notice-create",
+    "pages/votes/votes",
+    "pages/vote-detail/vote-detail",
+    "pages/vote-stats/vote-stats",
+    "pages/vote-create/vote-create",
+    "pages/vote-mine/vote-mine",
+    "pages/occupants-roster/occupants-roster",
+    "pages/public-revenue/public-revenue",
+    "pages/complaint-overview/complaint-overview"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "邻里院",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F6F8",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8A8F8C",
+    "selectedColor": "#0F3D34",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "assets/tab/mine.png",
+        "selectedIconPath": "assets/tab/mine-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

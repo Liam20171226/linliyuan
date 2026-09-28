@@ -1,0 +1,141 @@
+.head { margin-bottom: 16rpx; }
+.title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #16211D;
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+.meta { font-size: 24rpx; color: var(--muted); }
+.note {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #3A4741;
+  line-height: 1.5;
+}
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+.claim-hint {
+  margin: -8rpx 0 24rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(201, 160, 99, 0.12);
+  color: #8a6a3a;
+  font-size: 24rpx;
+  border-radius: 12rpx;
+  line-height: 1.5;
+}
+.btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: var(--radius-ctrl);
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+}
+.btn::after { border: none; }
+.btn.primary {
+  background: var(--brand);
+  color: #fff;
+}
+.btn.ghost {
+  background: #E7EFE9;
+  color: var(--brand);
+}
+.sec-title {
+  font-size: 26rpx;
+  color: var(--muted);
+  margin: 8rpx 0 12rpx;
+}
+.spot { margin-bottom: 12rpx; }
+.spot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+.spot-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #16211D;
+}
+.spot-addr, .spot-cats, .spot-time {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.spot-time { color: #3A4741; }
+
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.sheet-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #16211D;
+}
+.sheet-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.photo-box {
+  margin-top: 20rpx;
+  height: 320rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #F1EFEA;
+}
+.photo { width: 100%; height: 100%; }
+.photo-ph {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 26rpx;
+}
+.note-input {
+  margin-top: 16rpx;
+  width: 100%;
+  min-height: 140rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+  background: #F7F6F3;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+}
+.sheet-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.empty-box.soft {
+  padding: 60rpx 20rpx;
+  text-align: center;
+}

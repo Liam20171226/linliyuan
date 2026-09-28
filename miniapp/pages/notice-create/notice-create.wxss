@@ -1,0 +1,51 @@
+.form { margin-bottom: 24rpx; }
+.field-block { margin-bottom: 28rpx; }
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+.field-label-row .field-label { margin-bottom: 0; }
+.field-link {
+  font-size: 24rpx;
+  color: var(--brand);
+  font-weight: 500;
+}
+.field-input {
+  height: 80rpx;
+  padding: 0 24rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+.field-picker {
+  height: 80rpx;
+  line-height: 80rpx;
+  padding: 0 24rpx;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+.field-hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.4;
+}
+.field-area {
+  width: 100%;
+  min-height: 280rpx;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  background: var(--bg0);
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}

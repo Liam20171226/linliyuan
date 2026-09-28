@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="tabs">
+    <view class="tab {{tab === 'auth' ? 'on' : ''}}" data-tab="auth" bindtap="switchTab">住户认证</view>
+    <view class="tab {{tab === 'change' ? 'on' : ''}}" data-tab="change" bindtap="switchTab">房屋变更</view>
+  </view>
+
+  <block wx:if="{{tab === 'auth'}}">
+    <view class="card tip" wx:if="{{!authList.length && !loading}}">
+      <text class="tip-text">暂无认证申请。可从首页「住户认证」提交。</text>
+    </view>
+    <view class="card item" wx:for="{{authList}}" wx:key="id" data-id="{{item.id}}" bindtap="goAuthDetail">
+      <view class="row-top">
+        <text class="title">认证 · {{item.roleLabel}}</text>
+        <text class="status {{item.status}}">{{item.statusLabel}}</text>
+      </view>
+      <text class="meta">房屋：{{item.roomLabel}}</text>
+      <text class="meta muted" wx:if="{{item.rejectReason}}">拒绝原因：{{item.rejectReason}}</text>
+      <text class="meta muted" wx:if="{{item.applyTimeLabel}}">{{item.applyTimeLabel}}</text>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card tip" wx:if="{{!changeList.length && !loading}}">
+      <text class="tip-text">暂无房屋变更。业主可从首页「人员车辆维护」申请。</text>
+    </view>
+    <view class="card item" wx:for="{{changeList}}" wx:key="id">
+      <view class="row-top">
+        <text class="title">{{item.changeTypeLabel || item.changeType}}</text>
+        <text class="status {{item.status}}">{{item.statusLabel}}</text>
+      </view>
+      <text class="meta">房屋：{{item.roomLabel}}</text>
+      <text class="meta" wx:if="{{item.payloadSummary}}">内容：{{item.payloadSummary}}</text>
+      <text class="meta muted" wx:if="{{item.rejectReason}}">拒绝原因：{{item.rejectReason}}</text>
+      <text class="meta muted" wx:if="{{item.applyTimeLabel}}">{{item.applyTimeLabel}}</text>
+    </view>
+  </block>
+</view>

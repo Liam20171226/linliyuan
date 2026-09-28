@@ -1,0 +1,52 @@
+<import src="../../templates/photo-attach.wxml" />
+<view class="page page-with-footer">
+  <view class="card">
+    <text class="section-title" style="margin-top:0">{{pageTitle}}</text>
+    <view class="field-block" wx:if="{{roomOptions.length}}">
+      <text class="field-label">房屋</text>
+      <picker mode="selector" range="{{roomOptions}}" range-key="label" bindchange="onRoomPick">
+        <view class="field-picker">{{roomLabel || '请选择房屋'}}</view>
+      </picker>
+    </view>
+    <view class="field-block" wx:else>
+      <text class="field-label">房屋 ID</text>
+      <input class="field-input" placeholder="暂无绑定房屋时可手填" value="{{roomId}}" bindinput="onRoom" />
+    </view>
+    <view class="field-block">
+      <text class="field-label">类别</text>
+      <picker mode="selector" range="{{categories}}" bindchange="onCat">
+        <view class="field-picker">{{category}}</view>
+      </picker>
+    </view>
+    <view class="field-block">
+      <text class="field-label">问题描述</text>
+      <textarea class="field-area" placeholder="{{descPlaceholder}}" value="{{description}}" bindinput="onDesc" maxlength="500" />
+    </view>
+
+    <template is="photoAttach" data="{{photos, maxPhotos}}" />
+  </view>
+
+  <block wx:if="{{showList}}">
+    <text class="section-title">我的报修</text>
+    <view class="card" wx:for="{{list}}" wx:key="id">
+      <view class="row-top">
+        <text class="main">{{item.category}}</text>
+        <text class="badge badge-mute">{{item.statusLabel}}</text>
+      </view>
+      <text class="sub">{{item.content}}</text>
+      <button
+        wx:if="{{item.status === 'DONE_WAIT_RATE'}}"
+        class="rate-btn"
+        data-id="{{item.id}}"
+        bindtap="goRate"
+      >去评价</button>
+    </view>
+    <view wx:if="{{!list.length}}" class="empty-box soft">
+      <text class="empty-desc">暂无报修单</text>
+    </view>
+  </block>
+
+  <view class="footer-bar">
+    <button class="btn-main" bindtap="submit" loading="{{submitting}}">{{submitLabel}}</button>
+  </view>
+</view>
