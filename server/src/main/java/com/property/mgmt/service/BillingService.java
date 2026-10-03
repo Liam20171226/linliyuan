@@ -9,14 +9,14 @@ import com.property.mgmt.common.ErrorCodes;
 import com.property.mgmt.common.RoomPaths;
 import com.property.mgmt.domain.*;
 import com.property.mgmt.mapper.*;
-import com.property.mgmt.integration.WechatPayApi;
-import com.property.mgmt.config.WxProperties;
+import com.property.mgmt.config.PayProperties;
 import com.property.mgmt.security.AuthContext;
 import com.property.mgmt.security.AuthUser;
 import com.property.mgmt.security.StaffGuard;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -51,12 +51,18 @@ public class BillingService {
     private final RoomVehicleMapper roomVehicleMapper;
     private final ParkingSpaceMapper parkingSpaceMapper;
     private final TodoNotifyService todoNotifyService;
-    private final WechatPayApi wechatPayApi;
-    private final UserWechatMapper userWechatMapper;
-    private final WxProperties wxProperties;
+    private final PayProperties payProperties;
     private final RoomFeeExemptionService roomFeeExemptionService;
     private final PrepaidService prepaidService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** 与 OnlinePayService 互相依赖，字段注入 + Lazy */
+    private OnlinePayService onlinePayService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setOnlinePayService(@Lazy OnlinePayService onlinePayService) {
+        this.onlinePayService = onlinePayService;
+    }
 
     // ---------- meters ----------
 
@@ -411,7 +417,9 @@ public class BillingService {
         if (billMonth == null || !billMonth.matches("\\d{4}-\\d{2}")) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "billMonth 须为 YYYY-MM");
         }
-        feeItemService.seedDefaultsIfEmpty(cid);
+        if (feeItemService.enabledByCommunity(cid).isEmpty()) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "请先在「费项模板」中新增并启用费项后再生成账单");
+        }
         assertImportUploadsReady(cid, billMonth);
         List<Long> targets = resolveActiveRooms(cid, roomIds);
         List<Map<String, Object>> errors = new ArrayList<>();
@@ -758,36 +766,50 @@ public class BillingService {
             if ("IMPORT".equals(mgmtMode)) {
                 // 上传表并入
             } else if ("FIXED".equals(mgmtMode)) {
-                BigDecimal amt = parkingMgmt.getMonthlyAmount() == null ? null
-                        : parkingMgmt.getMonthlyAmount().setScale(2, RoundingMode.HALF_UP);
-                if (amt != null && !skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MGMT",
-                        parkingMgmt.getId(), parkingMgmt.getName(), amt, pendingExempt, applyPrepaidSkip)) {
-                    lines.add(line("PARKING_MGMT", parkingMgmt.getName(), amt,
-                            Map.of("feeItemId", parkingMgmt.getId(), "billingMode", "FIXED",
-                                    "monthlyAmount", parkingMgmt.getMonthlyAmount())));
+                // 固定单价仍按「已挂车位且有车占用」数量计，无绑定位不计费（与公式一致）
+                if (mgmtQty > 0) {
+                    BigDecimal unit = parkingMgmt.getMonthlyAmount() == null ? null
+                            : parkingMgmt.getMonthlyAmount().setScale(2, RoundingMode.HALF_UP);
+                    if (unit != null) {
+                        BigDecimal amount = unit.multiply(BigDecimal.valueOf(mgmtQty))
+                                .setScale(2, RoundingMode.HALF_UP);
+                        String title = parkingMgmt.getName() + (mgmtQty > 1 ? ("×" + mgmtQty) : "");
+                        if (!skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MGMT",
+                                parkingMgmt.getId(), title, amount, pendingExempt, applyPrepaidSkip)) {
+                            Map<String, Object> snap = new LinkedHashMap<>();
+                            snap.put("N", n);
+                            snap.put("X", x);
+                            snap.put("qty", mgmtQty);
+                            snap.put("unitPrice", unit);
+                            snap.put("feeItemId", parkingMgmt.getId());
+                            snap.put("billingMode", "FIXED");
+                            snap.put("monthlyAmount", parkingMgmt.getMonthlyAmount());
+                            lines.add(line("PARKING_MGMT", title, amount, snap));
+                        }
+                    }
                 }
             } else if (mgmtQty > 0) {
-            Map<String, BigDecimal> prices = priceMap(parkingMgmt.getId());
-            BigDecimal unit = prices.get("DEFAULT");
-            if (unit == null) {
-                unit = prices.get("OWNED");
-            }
+                Map<String, BigDecimal> prices = priceMap(parkingMgmt.getId());
+                BigDecimal unit = prices.get("DEFAULT");
                 if (unit == null) {
-                throw BizException.of(ErrorCodes.BILL_GEN_FAIL, "车位管理费缺少单价");
-            }
-            BigDecimal amount = unit.multiply(BigDecimal.valueOf(mgmtQty)).setScale(2, RoundingMode.HALF_UP);
-            String title = parkingMgmt.getName() + "×" + mgmtQty;
-            if (!skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MGMT", parkingMgmt.getId(),
-                    title, amount, pendingExempt, applyPrepaidSkip)) {
-            Map<String, Object> snap = new LinkedHashMap<>();
-            snap.put("N", n);
-            snap.put("X", x);
-            snap.put("qty", mgmtQty);
-            snap.put("unitPrice", unit);
-            snap.put("feeItemId", parkingMgmt.getId());
-            snap.put("billingMode", "FORMULA");
-            lines.add(line("PARKING_MGMT", title, amount, snap));
-            }
+                    unit = prices.get("OWNED");
+                }
+                if (unit == null) {
+                    throw BizException.of(ErrorCodes.BILL_GEN_FAIL, "车位管理费缺少单价");
+                }
+                BigDecimal amount = unit.multiply(BigDecimal.valueOf(mgmtQty)).setScale(2, RoundingMode.HALF_UP);
+                String title = parkingMgmt.getName() + "×" + mgmtQty;
+                if (!skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MGMT", parkingMgmt.getId(),
+                        title, amount, pendingExempt, applyPrepaidSkip)) {
+                    Map<String, Object> snap = new LinkedHashMap<>();
+                    snap.put("N", n);
+                    snap.put("X", x);
+                    snap.put("qty", mgmtQty);
+                    snap.put("unitPrice", unit);
+                    snap.put("feeItemId", parkingMgmt.getId());
+                    snap.put("billingMode", "FORMULA");
+                    lines.add(line("PARKING_MGMT", title, amount, snap));
+                }
             }
         }
 
@@ -797,36 +819,50 @@ public class BillingService {
             if ("IMPORT".equals(monMode)) {
                 // 上传表并入
             } else if ("FIXED".equals(monMode)) {
-                BigDecimal amt = parkingMonthly.getMonthlyAmount() == null ? null
-                        : parkingMonthly.getMonthlyAmount().setScale(2, RoundingMode.HALF_UP);
-                if (amt != null && !skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MONTHLY",
-                        parkingMonthly.getId(), parkingMonthly.getName(), amt, pendingExempt, applyPrepaidSkip)) {
-                    lines.add(line("PARKING_MONTHLY", parkingMonthly.getName(), amt,
-                            Map.of("feeItemId", parkingMonthly.getId(), "billingMode", "FIXED",
-                                    "monthlyAmount", parkingMonthly.getMonthlyAmount())));
+                // 固定单价按「超出已挂车位的车辆数」计，无超额车不计费
+                if (monthlyQty > 0) {
+                    BigDecimal unit = parkingMonthly.getMonthlyAmount() == null ? null
+                            : parkingMonthly.getMonthlyAmount().setScale(2, RoundingMode.HALF_UP);
+                    if (unit != null) {
+                        BigDecimal amount = unit.multiply(BigDecimal.valueOf(monthlyQty))
+                                .setScale(2, RoundingMode.HALF_UP);
+                        String title = parkingMonthly.getName() + (monthlyQty > 1 ? ("×" + monthlyQty) : "");
+                        if (!skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MONTHLY",
+                                parkingMonthly.getId(), title, amount, pendingExempt, applyPrepaidSkip)) {
+                            Map<String, Object> snap = new LinkedHashMap<>();
+                            snap.put("N", n);
+                            snap.put("X", x);
+                            snap.put("qty", monthlyQty);
+                            snap.put("unitPrice", unit);
+                            snap.put("feeItemId", parkingMonthly.getId());
+                            snap.put("billingMode", "FIXED");
+                            snap.put("monthlyAmount", parkingMonthly.getMonthlyAmount());
+                            lines.add(line("PARKING_MONTHLY", title, amount, snap));
+                        }
+                    }
                 }
             } else if (monthlyQty > 0) {
-            if (skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MONTHLY", parkingMonthly.getId(),
-                    parkingMonthly.getName(), null, pendingExempt, applyPrepaidSkip)) {
-                // skip all monthly lines
-            } else {
-            Map<String, BigDecimal> prices = priceMap(parkingMonthly.getId());
-            BigDecimal unit = prices.get("DEFAULT");
-            if (unit == null) {
-                throw BizException.of(ErrorCodes.BILL_GEN_FAIL, "车辆月保费缺少 DEFAULT 单价");
-            }
-            List<RoomVehicle> excess = new ArrayList<>(vehicles);
-            excess.sort(Comparator
-                    .comparing((RoomVehicle v) -> v.getParkingSpaceId() == null ? 0 : 1)
-                    .thenComparing(RoomVehicle::getId));
-            List<RoomVehicle> monthlyVehicles = excess.subList(0, monthlyQty);
-            for (RoomVehicle v : monthlyVehicles) {
-                lines.add(line("PARKING_MONTHLY", parkingMonthly.getName() + "-" + v.getPlateNo(),
-                        unit.setScale(2, RoundingMode.HALF_UP),
-                        Map.of("plateNo", v.getPlateNo(), "unitPrice", unit, "N", n, "X", x,
-                                "feeItemId", parkingMonthly.getId(), "billingMode", "FORMULA")));
-            }
-            }
+                if (skipIfExemptOrPrepaid(communityId, roomId, billMonth, "PARKING_MONTHLY", parkingMonthly.getId(),
+                        parkingMonthly.getName(), null, pendingExempt, applyPrepaidSkip)) {
+                    // skip all monthly lines
+                } else {
+                    Map<String, BigDecimal> prices = priceMap(parkingMonthly.getId());
+                    BigDecimal unit = prices.get("DEFAULT");
+                    if (unit == null) {
+                        throw BizException.of(ErrorCodes.BILL_GEN_FAIL, "车辆月保费缺少 DEFAULT 单价");
+                    }
+                    List<RoomVehicle> excess = new ArrayList<>(vehicles);
+                    excess.sort(Comparator
+                            .comparing((RoomVehicle v) -> v.getParkingSpaceId() == null ? 0 : 1)
+                            .thenComparing(RoomVehicle::getId));
+                    List<RoomVehicle> monthlyVehicles = excess.subList(0, monthlyQty);
+                    for (RoomVehicle v : monthlyVehicles) {
+                        lines.add(line("PARKING_MONTHLY", parkingMonthly.getName() + "-" + v.getPlateNo(),
+                                unit.setScale(2, RoundingMode.HALF_UP),
+                                Map.of("plateNo", v.getPlateNo(), "unitPrice", unit, "N", n, "X", x,
+                                        "feeItemId", parkingMonthly.getId(), "billingMode", "FORMULA")));
+                    }
+                }
             }
         }
 
@@ -920,7 +956,6 @@ public class BillingService {
         if (room == null || room.getDeletedAt() != null || !communityId.equals(room.getCommunityId())) {
             throw BizException.of(ErrorCodes.NOT_FOUND, "房屋不存在");
         }
-        feeItemService.seedDefaultsIfEmpty(communityId);
         List<FeeItem> items = feeItemService.enabledByCommunity(communityId);
         List<BillLine> lines = buildLinesForRoom(communityId, room, billMonth, items, null, false);
         Map<String, BigDecimal> map = new LinkedHashMap<>();
@@ -941,7 +976,6 @@ public class BillingService {
         if (billMonth == null || !billMonth.matches("\\d{4}-\\d{2}")) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "billMonth 须为 YYYY-MM");
         }
-        feeItemService.seedDefaultsIfEmpty(cid);
         List<FeeItem> items = feeItemService.enabledByCommunity(cid);
         boolean propertyFeeEnabled = items.stream().anyMatch(f ->
                 "PROPERTY_FEE".equals(f.getFeeCategory())
@@ -1011,6 +1045,7 @@ public class BillingService {
                 row.put("expectedLines", List.of());
                 row.put("estimatedTotal", null);
                 failCount++;
+                fillGeneratedDiff(row, exist, List.of(), null, false);
                 rooms.add(row);
                 continue;
             }
@@ -1045,27 +1080,35 @@ public class BillingService {
 
             try {
                 List<BillLine> lines = buildLinesForRoom(cid, room, billMonth, items, null, true);
-        BigDecimal total = lines.stream().map(BillLine::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-                row.put("status", lines.isEmpty() ? "READY" : "READY");
+                BigDecimal total = lines.stream().map(BillLine::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP);
+                List<String> expectedTitles = lines.stream()
+                        .map(l -> l.getTitle() == null || l.getTitle().isBlank() ? l.getFeeCategory() : l.getTitle())
+                        .toList();
+                row.put("status", "READY");
                 row.put("failReason", lines.isEmpty() ? "全额预缴/豁免覆盖，无需出账" : null);
-                row.put("expectedLines", lines.stream().map(BillLine::getTitle).toList());
+                row.put("expectedLines", expectedTitles);
                 row.put("estimatedTotal", total);
                 row.put("prepaidCovered", lines.isEmpty());
                 readyCount++;
+                fillGeneratedDiff(row, exist, expectedTitles, total, lines.isEmpty());
             } catch (BizException e) {
                 row.put("status", "WILL_FAIL");
                 row.put("failReason", e.getMessage());
                 row.put("expectedLines", List.of());
                 row.put("estimatedTotal", null);
                 failCount++;
+                fillGeneratedDiff(row, exist, List.of(), null, false);
             }
             rooms.add(row);
         }
 
+        long mismatchCount = rooms.stream().filter(r -> Boolean.TRUE.equals(r.get("diffWithGenerated"))).count();
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("includedCount", roomIds.size());
         summary.put("readyCount", readyCount);
         summary.put("failCount", failCount);
+        summary.put("mismatchCount", mismatchCount);
         summary.put("propertyFeeEnabled", propertyFeeEnabled);
         summary.put("propertyReadyCount", propertyReady);
         summary.put("propertyMissingCount", propertyMissing);
@@ -1079,6 +1122,70 @@ public class BillingService {
         data.put("summary", summary);
         data.put("rooms", rooms);
         return data;
+    }
+
+    /**
+     * 二次预览与本月已生成账单比对：合计或费项不一致时标红提示。
+     */
+    private void fillGeneratedDiff(Map<String, Object> row, Bill exist,
+                                   List<String> expectedTitles, BigDecimal estimatedTotal,
+                                   boolean previewNoBillNeeded) {
+        row.put("diffWithGenerated", false);
+        row.put("diffReason", null);
+        row.put("billTotal", null);
+        row.put("billLineTitles", List.of());
+        if (exist == null || "VOID".equals(exist.getStatus())) {
+            return;
+        }
+        List<BillLine> existLines = billLineMapper.selectList(new LambdaQueryWrapper<BillLine>()
+                .eq(BillLine::getBillId, exist.getId())
+                .orderByAsc(BillLine::getId));
+        List<String> billTitles = existLines.stream()
+                .map(l -> l.getTitle() == null || l.getTitle().isBlank() ? l.getFeeCategory() : l.getTitle())
+                .toList();
+        BigDecimal billTotal = exist.getTotalAmount() == null
+                ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                : exist.getTotalAmount().setScale(2, RoundingMode.HALF_UP);
+        row.put("billTotal", billTotal);
+        row.put("billLineTitles", billTitles);
+
+        List<String> reasons = new ArrayList<>();
+        BigDecimal previewTotal = estimatedTotal == null
+                ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                : estimatedTotal.setScale(2, RoundingMode.HALF_UP);
+
+        if (previewNoBillNeeded && billTotal.compareTo(BigDecimal.ZERO) > 0) {
+            reasons.add("预览无需出账，但已有账单合计 " + billTotal.toPlainString());
+        }
+        if (!previewNoBillNeeded && previewTotal.compareTo(billTotal) != 0) {
+            reasons.add("合计不一致：预览 " + previewTotal.toPlainString()
+                    + " / 已生成 " + billTotal.toPlainString());
+        }
+        if (!sameFeeTitleSet(expectedTitles, billTitles)) {
+            reasons.add("费项不一致：预览「"
+                    + (expectedTitles.isEmpty() ? "无" : String.join("、", expectedTitles))
+                    + "」/ 已生成「"
+                    + (billTitles.isEmpty() ? "无" : String.join("、", billTitles))
+                    + "」");
+        }
+        if ("WILL_FAIL".equals(String.valueOf(row.get("status")))) {
+            reasons.add("当前规则将失败，与已生成账单不符");
+        }
+        if (!reasons.isEmpty()) {
+            row.put("diffWithGenerated", true);
+            row.put("diffReason", String.join("；", reasons));
+        }
+    }
+
+    private static boolean sameFeeTitleSet(List<String> a, List<String> b) {
+        if (a == null) a = List.of();
+        if (b == null) b = List.of();
+        if (a.size() != b.size()) return false;
+        List<String> sa = new ArrayList<>(a);
+        List<String> sb = new ArrayList<>(b);
+        Collections.sort(sa);
+        Collections.sort(sb);
+        return sa.equals(sb);
     }
 
     private String roomPathLabel(Room room) {
@@ -1164,8 +1271,7 @@ public class BillingService {
     public Map<String, Object> staffList(String billMonth, String status, Long roomId, int page, int pageSize) {
         Long cid = StaffGuard.communityId();
         LambdaQueryWrapper<Bill> q = new LambdaQueryWrapper<Bill>()
-                .eq(Bill::getCommunityId, cid)
-                .orderByDesc(Bill::getId);
+                .eq(Bill::getCommunityId, cid);
         if (billMonth != null && !billMonth.isBlank()) {
             q.eq(Bill::getBillMonth, billMonth);
         }
@@ -1175,6 +1281,11 @@ public class BillingService {
         if (roomId != null) {
             q.eq(Bill::getRoomId, roomId);
         }
+        // 与算费预览一致：按房屋升序（101→105），不再按账单 id 倒序
+        if (billMonth == null || billMonth.isBlank()) {
+            q.orderByDesc(Bill::getBillMonth);
+        }
+        q.orderByAsc(Bill::getRoomId).orderByAsc(Bill::getId);
         return pageBills(q, page, pageSize, true);
     }
 
@@ -1235,45 +1346,88 @@ public class BillingService {
         PaymentConfig cfg = paymentConfigMapper.selectOne(new LambdaQueryWrapper<PaymentConfig>()
                 .eq(PaymentConfig::getCommunityId, cid));
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("guideText", cfg == null ? null : cfg.getGuideText());
-        data.put("qrAttachmentId", cfg == null ? null : cfg.getQrAttachmentId());
-        data.put("merchantPayEnabled", false);
-        data.put("prepaidEnabled", cfg != null && cfg.getPrepaidEnabled() != null && cfg.getPrepaidEnabled() == 1);
-        data.put("prepaidGuideText", cfg == null ? null : cfg.getPrepaidGuideText());
+        data.put("wechatEnabled", cfg != null && cfg.getWechatEnabled() != null && cfg.getWechatEnabled() == 1);
+        data.put("alipayEnabled", cfg != null && cfg.getAlipayEnabled() != null && cfg.getAlipayEnabled() == 1);
+        data.put("wechatSubMchId", cfg == null ? null : cfg.getWechatSubMchId());
+        data.put("alipaySmid", cfg == null ? null : cfg.getAlipaySmid());
+        data.put("wechatAppId", cfg == null ? null : cfg.getWechatAppId());
+        data.put("wechatApiV3KeyConfigured", cfg != null && cfg.getWechatApiV3Key() != null && !cfg.getWechatApiV3Key().isBlank());
+        data.put("wechatMchSerialConfigured", cfg != null && cfg.getWechatMchSerialNo() != null && !cfg.getWechatMchSerialNo().isBlank());
+        data.put("wechatPrivateKeyConfigured", cfg != null && cfg.getWechatPrivateKeyPem() != null && !cfg.getWechatPrivateKeyPem().isBlank());
+        data.put("alipayPrivateKeyConfigured", cfg != null && cfg.getAlipayPrivateKey() != null && !cfg.getAlipayPrivateKey().isBlank());
+        data.put("alipayPublicKeyConfigured", cfg != null && cfg.getAlipayPublicKey() != null && !cfg.getAlipayPublicKey().isBlank());
+        data.put("wechatChannelReady", cfg != null && cfg.wechatChannelReady());
+        data.put("alipayChannelReady", cfg != null && cfg.alipayChannelReady());
+        data.put("onboardingStatus", cfg == null ? "DRAFT" : (cfg.getOnboardingStatus() == null ? "DRAFT" : cfg.getOnboardingStatus()));
+        data.put("onboardingRemark", cfg == null ? null : cfg.getOnboardingRemark());
+        boolean merchantPayEnabled = cfg != null && cfg.anyOnlineReady();
+        data.put("merchantPayEnabled", merchantPayEnabled);
+        data.put("vendor", payProperties.getVendor());
+        data.put("payMock", payProperties.isMock());
         return data;
     }
 
     @Transactional
-    public Map<String, Object> putPaymentConfig(String guideText, Long qrAttachmentId,
-                                                Boolean prepaidEnabled, String prepaidGuideText) {
+    public Map<String, Object> putPaymentConfig(Boolean wechatEnabled, Boolean alipayEnabled,
+                                                String wechatSubMchId, String alipaySmid,
+                                                String wechatAppId, String wechatApiV3Key,
+                                                String wechatMchSerialNo, String wechatPrivateKeyPem,
+                                                String alipayPrivateKey, String alipayPublicKey,
+                                                String onboardingRemark) {
         AuthUser u = StaffGuard.requireStaff();
         StaffGuard.requireManagerOrPlatform(u);
         Long cid = u.getCommunityId();
         PaymentConfig cfg = paymentConfigMapper.selectOne(new LambdaQueryWrapper<PaymentConfig>()
                 .eq(PaymentConfig::getCommunityId, cid));
         LocalDateTime now = LocalDateTime.now();
-        if (cfg == null) {
+        boolean creating = cfg == null;
+        if (creating) {
             cfg = new PaymentConfig();
             cfg.setCommunityId(cid);
-            cfg.setGuideText(guideText);
-            cfg.setQrAttachmentId(qrAttachmentId);
-            cfg.setPrepaidEnabled(Boolean.TRUE.equals(prepaidEnabled) ? 1 : 0);
-            cfg.setPrepaidGuideText(prepaidGuideText);
-            cfg.setUpdatedBy(u.getUserId());
             cfg.setCreatedAt(now);
-            cfg.setUpdatedAt(now);
+            cfg.setOnboardingStatus("DRAFT");
+            cfg.setWechatEnabled(0);
+            cfg.setAlipayEnabled(0);
+        }
+        if (wechatEnabled != null) {
+            cfg.setWechatEnabled(Boolean.TRUE.equals(wechatEnabled) ? 1 : 0);
+        }
+        if (alipayEnabled != null) {
+            cfg.setAlipayEnabled(Boolean.TRUE.equals(alipayEnabled) ? 1 : 0);
+        }
+        if (wechatSubMchId != null) {
+            cfg.setWechatSubMchId(wechatSubMchId.isBlank() ? null : wechatSubMchId.trim());
+        }
+        if (alipaySmid != null) {
+            cfg.setAlipaySmid(alipaySmid.isBlank() ? null : alipaySmid.trim());
+        }
+        if (wechatAppId != null) {
+            cfg.setWechatAppId(wechatAppId.isBlank() ? null : wechatAppId.trim());
+        }
+        if (wechatApiV3Key != null && !wechatApiV3Key.isBlank()) {
+            cfg.setWechatApiV3Key(wechatApiV3Key.trim());
+        }
+        if (wechatMchSerialNo != null && !wechatMchSerialNo.isBlank()) {
+            cfg.setWechatMchSerialNo(wechatMchSerialNo.trim());
+        }
+        if (wechatPrivateKeyPem != null && !wechatPrivateKeyPem.isBlank()) {
+            cfg.setWechatPrivateKeyPem(wechatPrivateKeyPem.trim());
+        }
+        if (alipayPrivateKey != null && !alipayPrivateKey.isBlank()) {
+            cfg.setAlipayPrivateKey(alipayPrivateKey.trim());
+        }
+        if (alipayPublicKey != null && !alipayPublicKey.isBlank()) {
+            cfg.setAlipayPublicKey(alipayPublicKey.trim());
+        }
+        if (onboardingRemark != null) {
+            cfg.setOnboardingRemark(onboardingRemark.isBlank() ? null : onboardingRemark.trim());
+        }
+        cfg.setOnboardingStatus(cfg.anyOnlineReady() ? "ACTIVE" : "DRAFT");
+        cfg.setUpdatedBy(u.getUserId());
+        cfg.setUpdatedAt(now);
+        if (creating) {
             paymentConfigMapper.insert(cfg);
         } else {
-            cfg.setGuideText(guideText);
-            cfg.setQrAttachmentId(qrAttachmentId);
-            if (prepaidEnabled != null) {
-                cfg.setPrepaidEnabled(Boolean.TRUE.equals(prepaidEnabled) ? 1 : 0);
-            }
-            if (prepaidGuideText != null) {
-                cfg.setPrepaidGuideText(prepaidGuideText);
-            }
-            cfg.setUpdatedBy(u.getUserId());
-            cfg.setUpdatedAt(now);
             paymentConfigMapper.updateById(cfg);
         }
         return getPaymentConfig();
@@ -1281,71 +1435,51 @@ public class BillingService {
 
     public Map<String, Object> payGuide(Long billId) {
         Bill b = requireResidentBill(billId);
-        PaymentConfig cfg = paymentConfigMapper.selectOne(new LambdaQueryWrapper<PaymentConfig>()
-                .eq(PaymentConfig::getCommunityId, b.getCommunityId()));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("billId", b.getId());
         data.put("totalAmount", b.getTotalAmount());
-        data.put("guideText", cfg == null ? null : cfg.getGuideText());
-        data.put("qrAttachmentId", cfg == null ? null : cfg.getQrAttachmentId());
+        data.putAll(onlinePayService.payOptionsForCommunity(b.getCommunityId()));
         return data;
+    }
+
+    public Map<String, Object> residentPayOptions() {
+        AuthUser u = AuthContext.require();
+        if (u.getCommunityId() == null) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "未选择小区");
+        }
+        return onlinePayService.payOptionsForCommunity(u.getCommunityId());
+    }
+
+    /** 住户线上支付（微信/支付宝），路由到小区子商户 */
+    @Transactional
+    public Map<String, Object> onlinePay(Long billId, String channel) {
+        return onlinePayService.createPay(List.of(billId), channel == null || channel.isBlank() ? "WECHAT" : channel);
     }
 
     @Transactional
     public Map<String, Object> wechatPay(Long billId) {
-        Bill b = requireResidentBill(billId);
-        if ("PAID".equals(b.getStatus())) {
-            throw BizException.of(ErrorCodes.BILL_LOCKED, "账单已缴费，无需再支付");
-        }
-        if (!"PUBLISHED".equals(b.getStatus())) {
-            throw BizException.of(ErrorCodes.BAD_PARAM, "仅已发放未缴账单可支付");
-        }
-        Long uid = AuthContext.require().getUserId();
-        UserWechat bind = userWechatMapper.selectOne(new LambdaQueryWrapper<UserWechat>()
-                .eq(UserWechat::getUserId, uid)
-                .eq(UserWechat::getAppId, wxProperties.getAppId())
-                .last("LIMIT 1"));
-        String openid = bind == null ? null : bind.getOpenid();
-        Map<String, Object> data = wechatPayApi.createJsapiOrder(b, openid);
-        Object prepayId = data.get("prepayId");
-        if (prepayId != null) {
-            b.setWechatTransactionId(String.valueOf(prepayId));
-        b.setUpdatedAt(LocalDateTime.now());
-        billMapper.updateById(b);
-        }
-        return data;
+        return onlinePay(billId, "WECHAT");
     }
 
     @Transactional
     public Map<String, Object> wechatNotify(Map<String, Object> body) {
-        String prepayId = str(body == null ? null : body.get("prepayId"));
-        if (prepayId == null) {
-            prepayId = str(body == null ? null : body.get("wechatTransactionId"));
-        }
-        if (prepayId == null || prepayId.isBlank()) {
-            throw BizException.of(ErrorCodes.BAD_PARAM, "prepayId 必填");
-        }
-        // 必须与下单时写入账单的预支付单号一致；禁止仅凭 billId 入账
-        Bill b = billMapper.selectOne(new LambdaQueryWrapper<Bill>()
-                .eq(Bill::getWechatTransactionId, prepayId)
-                .last("LIMIT 1"));
-        if (b == null) {
-            throw BizException.of(ErrorCodes.NOT_FOUND, "未找到对应预支付账单，请先发起支付");
-        }
-        if ("PAID".equals(b.getStatus())) {
-            return Map.of("idempotent", true, "billId", b.getId());
-        }
-        if (!"PUBLISHED".equals(b.getStatus())) {
-            throw BizException.of(ErrorCodes.BAD_PARAM, "账单状态不可确认支付");
-        }
-        boolean mock = wechatPayApi.isMock() || prepayId.startsWith("MOCK_");
-        if (!mock) {
-            // 正式签名校验待接 SDK；未接前拒绝裸回调，避免伪造入账
-            throw BizException.of(ErrorCodes.FORBIDDEN, "正式支付回调须完成签名校验后方可入账");
-        }
-        markPaid(b, "WECHAT_MCH", null, AuthContext.get() == null ? null : AuthContext.get().getUserId(),
-                "微信商户支付(MOCK)");
-        return Map.of("ok", true, "billId", b.getId(), "mock", true);
+        return onlinePayService.handleNotify("WECHAT", body);
+    }
+
+    @Transactional
+    public Map<String, Object> payNotify(String channel, Map<String, Object> body) {
+        return onlinePayService.handleNotify(channel, body);
+    }
+
+    /** 供 OnlinePayService 回调：幂等入账 */
+    @Transactional
+    public void settleOnlinePaid(Bill b, String channel, Long payerUserId,
+                                 String outTradeNo, String thirdTradeNo, String remark) {
+        markPaid(b, channel, null, payerUserId, remark, outTradeNo, thirdTradeNo);
+    }
+
+    public Bill requireResidentBillPublic(Long id) {
+        return requireResidentBill(id);
     }
 
     @Transactional
@@ -1561,6 +1695,13 @@ public class BillingService {
         pr.setCreatedAt(now);
         paymentRecordMapper.insert(pr);
 
+        // 线上渠道：原子商户原路退（MOCK 或聚合 SDK）；账务冲红始终落库
+        try {
+            onlinePayService.refundForBill(b, remain, reason.trim());
+        } catch (Exception ignored) {
+            // 退款失败不阻断账务冲红；对账可发现差异
+        }
+
         b.setStatus("VOID");
         b.setUpdatedAt(now);
         billMapper.updateById(b);
@@ -1622,41 +1763,42 @@ public class BillingService {
 
     @Transactional
     public Map<String, Object> batchWechatPay(List<Long> billIds) {
+        return batchOnlinePay(billIds, "WECHAT");
+    }
+
+    @Transactional
+    public Map<String, Object> batchOnlinePay(List<Long> billIds, String channel) {
         if (billIds == null || billIds.isEmpty()) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "billIds 不能为空");
         }
-        BigDecimal total = BigDecimal.ZERO;
-        List<Bill> bills = new ArrayList<>();
-        for (Long id : billIds) {
-            Bill b = requireResidentBill(id);
-            if (!"PUBLISHED".equals(b.getStatus())) {
-                throw BizException.of(ErrorCodes.BAD_PARAM, "仅已发放未缴账单可合并支付，账单#" + id);
-            }
-            total = total.add(b.getTotalAmount());
-            bills.add(b);
+        String ch = channel == null || channel.isBlank() ? "WECHAT" : channel;
+        // MOCK：一笔支付单覆盖多账单，回调时拆多笔 payment_record
+        Map<String, Object> data = onlinePayService.createPay(billIds, ch);
+        if (Boolean.TRUE.equals(data.get("mock"))) {
+            // 自动模拟回调入账，保持小程序合并支付体验
+            Map<String, Object> notifyBody = new LinkedHashMap<>();
+            notifyBody.put("outTradeNo", data.get("outTradeNo"));
+            notifyBody.put("prepayId", data.get("prepayId"));
+            notifyBody.put("amount", data.get("totalAmount"));
+            Map<String, Object> settled = onlinePayService.handleNotify(ch, notifyBody);
+            settled.put("paid", true);
+            settled.put("mock", true);
+            settled.put("count", billIds.size());
+            settled.put("totalAmount", data.get("totalAmount"));
+            settled.put("billIds", billIds);
+            return settled;
         }
-        // MOCK：直接逐单确认；正式环境可后续扩展为一次下单多分账
-        if (wechatPayApi.isMock()) {
-            Long uid = AuthContext.require().getUserId();
-            for (Bill b : bills) {
-                markPaid(b, "WECHAT_MCH", null, uid, "合并支付(MOCK)");
-            }
-            return Map.of(
-                    "mock", true,
-                    "paid", true,
-                    "count", bills.size(),
-                    "totalAmount", total,
-                    "billIds", billIds);
-        }
-        // 非 MOCK：对金额最大的单拉起支付会不准确；暂对首单下单并在备注标明合并（正式接入前以 MOCK 为主）
-        Map<String, Object> first = wechatPay(bills.get(0).getId());
-        first.put("batchTotalAmount", total);
-        first.put("batchBillIds", billIds);
-        first.put("hint", "正式商户合并支付待完整接入；当前仅锁定首单预支付");
-        return first;
+        data.put("paid", false);
+        data.put("hint", "请拉起收银台完成支付");
+        return data;
     }
 
     private void markPaid(Bill b, String channel, Long confirmedBy, Long payerUserId, String remark) {
+        markPaid(b, channel, confirmedBy, payerUserId, remark, null, null);
+    }
+
+    private void markPaid(Bill b, String channel, Long confirmedBy, Long payerUserId, String remark,
+                          String outTradeNo, String thirdTradeNo) {
         LocalDateTime now = LocalDateTime.now();
         int updated = billMapper.update(null, new LambdaUpdateWrapper<Bill>()
                 .eq(Bill::getId, b.getId())
@@ -1690,19 +1832,21 @@ public class BillingService {
             todoNotifyService.doneByBiz("BILL", b.getId(), "BILL_DUE");
             return;
         }
-            PaymentRecord pr = new PaymentRecord();
-            pr.setCommunityId(b.getCommunityId());
-            pr.setBillId(b.getId());
-            pr.setRoomId(b.getRoomId());
-            pr.setPayerUserId(payerUserId);
-            pr.setAmount(b.getTotalAmount());
-            pr.setPayChannel(channel);
-            pr.setConfirmedBy(confirmedBy);
-            pr.setPaidAt(now);
-            pr.setRemark(remark);
-            pr.setCreatedAt(now);
+        PaymentRecord pr = new PaymentRecord();
+        pr.setCommunityId(b.getCommunityId());
+        pr.setBillId(b.getId());
+        pr.setRoomId(b.getRoomId());
+        pr.setPayerUserId(payerUserId);
+        pr.setAmount(b.getTotalAmount());
+        pr.setPayChannel(channel);
+        pr.setConfirmedBy(confirmedBy);
+        pr.setPaidAt(now);
+        pr.setRemark(remark);
+        pr.setOutTradeNo(outTradeNo);
+        pr.setThirdTradeNo(thirdTradeNo);
+        pr.setCreatedAt(now);
         fillFeeSnapshot(pr, b.getId());
-            paymentRecordMapper.insert(pr);
+        paymentRecordMapper.insert(pr);
         todoNotifyService.doneByBiz("BILL", b.getId(), "BILL_DUE");
     }
 

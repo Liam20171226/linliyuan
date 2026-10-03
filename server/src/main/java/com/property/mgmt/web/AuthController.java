@@ -40,6 +40,18 @@ public class AuthController {
         return ApiResponse.ok(authService.appLogin(req.getMobile(), req.getPassword()));
     }
 
+    /** App 游客自助注册（手机号 + 密码） */
+    @PostMapping("/app/register")
+    public ApiResponse<Map<String, Object>> appRegister(@RequestBody StaffLoginReq req) {
+        return ApiResponse.ok(authService.appRegister(req.getMobile(), req.getPassword()));
+    }
+
+    /** 全库查手机号是否已被占用（住户/物业/业委/游客） */
+    @GetMapping("/app/mobile-taken")
+    public ApiResponse<Map<String, Object>> mobileTaken(@RequestParam String mobile) {
+        return ApiResponse.ok(authService.isMobileTaken(mobile));
+    }
+
     @PostMapping("/app/change-password")
     public ApiResponse<Map<String, Object>> changeAppPassword(@RequestBody ChangePwdReq req) {
         return ApiResponse.ok(authService.changeAppPassword(req.getOldPassword(), req.getNewPassword()));

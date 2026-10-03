@@ -49,35 +49,80 @@ public class FeeItemService {
 
     public List<FeeItem> list() {
         Long cid = StaffGuard.communityId();
-        seedDefaultsIfEmpty(cid);
+        // 列表页不自动补种：删光后应保持空，避免「删完又冒出来」
         migrateLegacyFeeCategories(cid);
+        dedupeSingletonCategories(cid);
         return feeItemMapper.selectList(new LambdaQueryWrapper<FeeItem>()
                 .eq(FeeItem::getCommunityId, cid)
                 .orderByAsc(FeeItem::getId));
     }
 
+    /**
+     * 显式补齐推荐默认费项（仅「一键推荐」等用户主动操作调用；列表/预览/出账不得自动调用）。
+     */
     @Transactional
-    public void seedDefaultsIfEmpty(Long communityId) {
-        long cnt = feeItemMapper.selectCount(new LambdaQueryWrapper<FeeItem>()
-                .eq(FeeItem::getCommunityId, communityId));
-        if (cnt > 0) {
+    public synchronized void seedDefaultsIfEmpty(Long communityId) {
+        if (communityId == null) {
             return;
         }
+        List<FeeItem> existing = feeItemMapper.selectList(new LambdaQueryWrapper<FeeItem>()
+                .eq(FeeItem::getCommunityId, communityId));
+        java.util.Set<String> cats = new java.util.HashSet<>();
+        for (FeeItem f : existing) {
+            if (f.getFeeCategory() != null) {
+                cats.add(f.getFeeCategory());
+            }
+        }
         LocalDateTime now = LocalDateTime.now();
-        FeeItem property = createSeed(communityId, "物业管理费", "PROPERTY_FEE", "AREA_X_HOUSE_TYPE_PRICE", null, now);
-        property.setRemark(DEFAULT_PROPERTY_FEE_REMARK);
-        feeItemMapper.updateById(property);
-        FeeItem mgmt = createSeed(communityId, "车位管理费", "PARKING_MGMT", "PER_PARKING_BOUND", null, now);
-        mgmt.setRemark("{\"billingMode\":\"FORMULA\"}");
-        feeItemMapper.updateById(mgmt);
-        FeeItem monthly = createSeed(communityId, "车辆月保费", "PARKING_MONTHLY", "PER_VEHICLE_UNBOUND", null, now);
-        monthly.setRemark("{\"billingMode\":\"FORMULA\"}");
-        feeItemMapper.updateById(monthly);
-        FeeItem garbage = createSeed(communityId, "垃圾费", "GARBAGE", "FIXED_MONTHLY", new BigDecimal("5.00"), now);
-        garbage.setRemark("{\"billingMode\":\"FIXED\"}");
-        feeItemMapper.updateById(garbage);
-        upsertRule(communityId, mgmt.getId(), "DEFAULT", new BigDecimal("50.0000"));
-        upsertRule(communityId, monthly.getId(), "DEFAULT", new BigDecimal("200.0000"));
+        if (!cats.contains("PROPERTY_FEE")) {
+            FeeItem property = createSeed(communityId, "物业管理费", "PROPERTY_FEE", "AREA_X_HOUSE_TYPE_PRICE", null, now);
+            property.setRemark(DEFAULT_PROPERTY_FEE_REMARK);
+            feeItemMapper.updateById(property);
+            cats.add("PROPERTY_FEE");
+        }
+        if (!cats.contains("PARKING_MGMT")) {
+            FeeItem mgmt = createSeed(communityId, "车位管理费", "PARKING_MGMT", "PER_PARKING_BOUND", null, now);
+            mgmt.setRemark("{\"billingMode\":\"FORMULA\"}");
+            feeItemMapper.updateById(mgmt);
+            upsertRule(communityId, mgmt.getId(), "DEFAULT", new BigDecimal("50.0000"));
+            cats.add("PARKING_MGMT");
+        }
+        if (!cats.contains("PARKING_MONTHLY")) {
+            FeeItem monthly = createSeed(communityId, "车辆月保费", "PARKING_MONTHLY", "PER_VEHICLE_UNBOUND", null, now);
+            monthly.setRemark("{\"billingMode\":\"FORMULA\"}");
+            feeItemMapper.updateById(monthly);
+            upsertRule(communityId, monthly.getId(), "DEFAULT", new BigDecimal("200.0000"));
+            cats.add("PARKING_MONTHLY");
+        }
+        if (!cats.contains("GARBAGE")) {
+            FeeItem garbage = createSeed(communityId, "垃圾费", "GARBAGE", "FIXED_MONTHLY", new BigDecimal("5.00"), now);
+            garbage.setRemark("{\"billingMode\":\"FIXED\"}");
+            feeItemMapper.updateById(garbage);
+        }
+        dedupeSingletonCategories(communityId);
+    }
+
+    /** 单例大类若因历史/并发出现多条，保留 id 最小的一条。 */
+    @Transactional
+    public void dedupeSingletonCategories(Long communityId) {
+        List<FeeItem> all = feeItemMapper.selectList(new LambdaQueryWrapper<FeeItem>()
+                .eq(FeeItem::getCommunityId, communityId)
+                .orderByAsc(FeeItem::getId));
+        Map<String, FeeItem> keep = new LinkedHashMap<>();
+        for (FeeItem f : all) {
+            String cat = f.getFeeCategory();
+            if (cat == null || !SINGLETON_CATEGORIES.contains(cat)) {
+                continue;
+            }
+            FeeItem first = keep.get(cat);
+            if (first == null) {
+                keep.put(cat, f);
+                continue;
+            }
+            priceRuleMapper.delete(new LambdaQueryWrapper<FeeItemPriceRule>()
+                    .eq(FeeItemPriceRule::getFeeItemId, f.getId()));
+            feeItemMapper.deleteById(f.getId());
+        }
     }
 
     /**

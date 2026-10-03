@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '../api'
 import { authFailRedirectPath } from '../authSession'
@@ -8,7 +8,24 @@ import { formatMoney } from '../money'
 import StaffNav from '../components/StaffNav.vue'
 import StaffSessionAction from '../components/StaffSessionAction.vue'
 
+const TAB_KEYS = ['bills', 'payment'] as const
+type TabKey = (typeof TAB_KEYS)[number]
+
+const route = useRoute()
 const router = useRouter()
+
+const activeTab = computed<TabKey>(() => {
+  const t = route.query.tab
+  if (typeof t === 'string' && (TAB_KEYS as readonly string[]).includes(t)) return t as TabKey
+  return 'bills'
+})
+
+function onTabChange(name: string | number) {
+  const tab = String(name)
+  if (tab === activeTab.value) return
+  router.replace({ path: '/billing', query: tab === 'bills' ? {} : { tab } })
+}
+
 const loading = ref(false)
 const billMonth = ref(new Date().toISOString().slice(0, 7))
 const bills = ref<any[]>([])
@@ -16,7 +33,7 @@ const feeItems = ref<any[]>([])
 const meterUploads = ref<any[]>([])
 const genResult = ref<any>(null)
 const chargePreview = ref<{ summary: any; rooms: any[] } | null>(null)
-const previewFilter = ref<'ALL' | 'READY' | 'WILL_FAIL'>('ALL')
+const previewFilter = ref<'ALL' | 'READY' | 'WILL_FAIL' | 'MISMATCH'>('ALL')
 const priceRules = ref<Record<number, any[]>>({})
 const ruleDraft = ref<Record<number, {
   mgmt?: string
@@ -43,6 +60,42 @@ const prepaidCats = ref(['PROPERTY_FEE'])
 const prepaidCash = ref(500)
 const prepaidListAmount = ref<number | null>(null)
 const prepaidPlans = ref<any[]>([])
+
+/** 收款配置（本页配齐商户号+密钥即可开通 App 缴费） */
+const payCfg = ref({
+  wechatEnabled: false,
+  alipayEnabled: false,
+  wechatSubMchId: '',
+  alipaySmid: '',
+  wechatAppId: '',
+  wechatApiV3Key: '',
+  wechatMchSerialNo: '',
+  wechatPrivateKeyPem: '',
+  alipayPrivateKey: '',
+  alipayPublicKey: '',
+  wechatApiV3KeyConfigured: false,
+  wechatMchSerialConfigured: false,
+  wechatPrivateKeyConfigured: false,
+  alipayPrivateKeyConfigured: false,
+  alipayPublicKeyConfigured: false,
+  wechatChannelReady: false,
+  alipayChannelReady: false,
+  onboardingRemark: '',
+  merchantPayEnabled: false,
+  vendor: 'OFFICIAL',
+  payMock: true,
+})
+const payCfgSaving = ref(false)
+
+const onlineConfigReady = computed(() => !!payCfg.value.wechatChannelReady || !!payCfg.value.alipayChannelReady)
+const payStatusTitle = computed(() => {
+  if (onlineConfigReady.value) {
+    return payCfg.value.payMock
+      ? '收款已配齐：住户可在 App 选微信/支付宝缴费（当前为模拟到账，账单会自动变已缴）'
+      : '收款已配齐：住户可在 App 选微信/支付宝缴费，成功后自动记已缴'
+  }
+  return '尚未开通：请打开通道并填齐商户号与密钥后保存；未开通时仍可在账单里手动「确认收款」'
+})
 
 function expandMonths(from: string, to: string): string[] {
   if (!/^\d{4}-\d{2}$/.test(from) || !/^\d{4}-\d{2}$/.test(to)) return []
@@ -103,10 +156,10 @@ async function ensureSpaceTree() {
 
 const exemptions = ref<any[]>([])
 const exForm = ref({
-  roomId: '' as string | number,
+  roomId: null as number | null,
   feeCategory: 'PROPERTY_FEE',
   effectiveFrom: new Date().toISOString().slice(0, 7),
-  effectiveTo: '',
+  effectiveTo: '' as string,
   reason: '',
 })
 const addForm = ref({
@@ -194,11 +247,16 @@ const previewRooms = computed(() => {
   const list = chargePreview.value?.rooms || []
   if (previewFilter.value === 'READY') return list.filter((r) => r.status === 'READY')
   if (previewFilter.value === 'WILL_FAIL') return list.filter((r) => r.status === 'WILL_FAIL')
+  if (previewFilter.value === 'MISMATCH') return list.filter((r) => r.diffWithGenerated)
   return list
 })
 
-function setPreviewFilter(f: 'ALL' | 'READY' | 'WILL_FAIL') {
+function setPreviewFilter(f: 'ALL' | 'READY' | 'WILL_FAIL' | 'MISMATCH') {
   previewFilter.value = f
+}
+
+function previewRowClassName({ row }: { row: any }) {
+  return row?.diffWithGenerated ? 'preview-row-mismatch' : ''
 }
 
 const FAIL_ROOMS_KEY = 'billingChargeFailRoomIds'
@@ -339,6 +397,16 @@ async function loadRules(itemId: number) {
 }
 
 async function load() {
+  if (activeTab.value === 'payment') {
+    loading.value = true
+    try {
+      if (!(await ensureStaff())) return
+      await loadPayConfig()
+    } finally {
+      loading.value = false
+    }
+    return
+  }
   loading.value = true
   try {
     if (!(await ensureStaff())) return
@@ -385,6 +453,64 @@ async function load() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+async function loadPayConfig() {
+  try {
+    const { data } = await api.get('/staff/payment-config')
+    if (data.code !== 0 || !data.data) return
+    const d = data.data
+    payCfg.value = {
+      wechatEnabled: !!d.wechatEnabled,
+      alipayEnabled: !!d.alipayEnabled,
+      wechatSubMchId: d.wechatSubMchId || '',
+      alipaySmid: d.alipaySmid || '',
+      wechatAppId: d.wechatAppId || '',
+      wechatApiV3Key: '',
+      wechatMchSerialNo: '',
+      wechatPrivateKeyPem: '',
+      alipayPrivateKey: '',
+      alipayPublicKey: '',
+      wechatApiV3KeyConfigured: !!d.wechatApiV3KeyConfigured,
+      wechatMchSerialConfigured: !!d.wechatMchSerialConfigured,
+      wechatPrivateKeyConfigured: !!d.wechatPrivateKeyConfigured,
+      alipayPrivateKeyConfigured: !!d.alipayPrivateKeyConfigured,
+      alipayPublicKeyConfigured: !!d.alipayPublicKeyConfigured,
+      wechatChannelReady: !!d.wechatChannelReady,
+      alipayChannelReady: !!d.alipayChannelReady,
+      onboardingRemark: d.onboardingRemark || '',
+      merchantPayEnabled: !!d.merchantPayEnabled,
+      vendor: d.vendor || 'OFFICIAL',
+      payMock: d.payMock !== false,
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function savePayConfig() {
+  payCfgSaving.value = true
+  try {
+    const { data } = await api.put('/staff/payment-config', {
+      wechatEnabled: payCfg.value.wechatEnabled,
+      alipayEnabled: payCfg.value.alipayEnabled,
+      wechatSubMchId: payCfg.value.wechatSubMchId,
+      alipaySmid: payCfg.value.alipaySmid,
+      wechatAppId: payCfg.value.wechatAppId,
+      wechatApiV3Key: payCfg.value.wechatApiV3Key || undefined,
+      wechatMchSerialNo: payCfg.value.wechatMchSerialNo || undefined,
+      wechatPrivateKeyPem: payCfg.value.wechatPrivateKeyPem || undefined,
+      alipayPrivateKey: payCfg.value.alipayPrivateKey || undefined,
+      alipayPublicKey: payCfg.value.alipayPublicKey || undefined,
+      onboardingRemark: payCfg.value.onboardingRemark,
+    })
+    if (data.code === 0) {
+      ElMessage.success('收款配置已保存')
+      await loadPayConfig()
+    } else ElMessage.error(data.message || '保存失败')
+  } finally {
+    payCfgSaving.value = false
   }
 }
 
@@ -484,9 +610,20 @@ async function deletePrepaid(id: number) {
 }
 
 async function createExemption() {
-  const roomId = Number(exForm.value.roomId)
-  if (!roomId) {
-    ElMessage.warning('请填写房屋 ID')
+  const roomId = exForm.value.roomId
+  if (roomId == null) {
+    ElMessage.warning('请选择房屋')
+    return
+  }
+  if (!exForm.value.effectiveFrom) {
+    ElMessage.warning('请选择起始账期')
+    return
+  }
+  if (
+    exForm.value.effectiveTo &&
+    exForm.value.effectiveTo < exForm.value.effectiveFrom
+  ) {
+    ElMessage.warning('结束账期不能早于起始账期')
     return
   }
   const { data } = await api.post('/staff/room-fee-exemptions', {
@@ -498,6 +635,7 @@ async function createExemption() {
   })
   if (data.code === 0) {
     ElMessage.success('已添加豁免')
+    exForm.value.reason = ''
     load()
   } else ElMessage.error(data.message)
 }
@@ -823,19 +961,131 @@ async function onMeterFile(file: File) {
 }
 
 onMounted(load)
+
+watch(activeTab, () => {
+  load()
+})
+
+watch(
+  () => route.query.tab,
+  (t) => {
+    if (t != null && typeof t === 'string' && !(TAB_KEYS as readonly string[]).includes(t)) {
+      router.replace({ path: '/billing' })
+    }
+  },
+)
 </script>
 
 <template>
   <div class="page" v-loading="loading">
     <header>
       <div>
-        <h2>账单管理</h2>
-        <p class="sub">费项模板 →（如需）导入配置 → 生成草稿 → 一键发放</p>
+        <h2>账单</h2>
+        <p class="sub">出账发放与收款配置</p>
         <StaffNav />
       </div>
       <StaffSessionAction />
     </header>
 
+    <el-tabs :model-value="activeTab" class="tabs" @tab-change="onTabChange">
+      <el-tab-pane label="收款配置" name="payment" />
+      <el-tab-pane label="账单" name="bills" />
+    </el-tabs>
+
+    <template v-if="activeTab === 'payment'">
+    <section class="block pay-guide-card">
+      <h3>当前效果</h3>
+      <p class="pay-status">{{ payStatusTitle }}</p>
+      <ol class="pay-steps">
+        <li>在本页打开微信和/或支付宝，填入官方商户资料与密钥，点保存。配齐后住户 App 即可缴费，无需另外部署。</li>
+        <li>微信需：商户号、APIv3 密钥、证书序列号、商户私钥；支付宝需：APPID、应用私钥、支付宝公钥。</li>
+        <li>密钥保存后再次打开页面不会回显明文；要更换请重新粘贴后保存。未开通时仍可在「账单」手动确认收款。</li>
+      </ol>
+    </section>
+
+    <section class="block">
+      <h3>微信支付</h3>
+      <el-form label-width="140px" class="pay-cfg-form" style="max-width:820px">
+        <el-form-item label="启用微信">
+          <el-switch v-model="payCfg.wechatEnabled" />
+          <el-tag v-if="payCfg.wechatChannelReady" type="success" style="margin-left:10px">已配齐</el-tag>
+          <el-tag v-else type="info" style="margin-left:10px">未配齐</el-tag>
+        </el-form-item>
+        <el-form-item label="商户号">
+          <el-input v-model="payCfg.wechatSubMchId" placeholder="微信支付商户号" :disabled="!payCfg.wechatEnabled" />
+        </el-form-item>
+        <el-form-item label="AppID（选填）">
+          <el-input v-model="payCfg.wechatAppId" placeholder="拉起支付用的 App/小程序 AppID" :disabled="!payCfg.wechatEnabled" />
+        </el-form-item>
+        <el-form-item label="APIv3 密钥">
+          <el-input
+            v-model="payCfg.wechatApiV3Key"
+            type="password"
+            show-password
+            :placeholder="payCfg.wechatApiV3KeyConfigured ? '已配置，留空不修改' : '32 位 APIv3 密钥'"
+            :disabled="!payCfg.wechatEnabled"
+          />
+        </el-form-item>
+        <el-form-item label="证书序列号">
+          <el-input
+            v-model="payCfg.wechatMchSerialNo"
+            :placeholder="payCfg.wechatMchSerialConfigured ? '已配置，留空不修改' : '商户 API 证书序列号'"
+            :disabled="!payCfg.wechatEnabled"
+          />
+        </el-form-item>
+        <el-form-item label="商户私钥">
+          <el-input
+            v-model="payCfg.wechatPrivateKeyPem"
+            type="textarea"
+            :rows="4"
+            :placeholder="payCfg.wechatPrivateKeyConfigured ? '已配置，留空不修改；更换请粘贴完整 PEM' : '-----BEGIN PRIVATE KEY----- ...'"
+            :disabled="!payCfg.wechatEnabled"
+          />
+        </el-form-item>
+      </el-form>
+    </section>
+
+    <section class="block">
+      <h3>支付宝</h3>
+      <el-form label-width="140px" class="pay-cfg-form" style="max-width:820px">
+        <el-form-item label="启用支付宝">
+          <el-switch v-model="payCfg.alipayEnabled" />
+          <el-tag v-if="payCfg.alipayChannelReady" type="success" style="margin-left:10px">已配齐</el-tag>
+          <el-tag v-else type="info" style="margin-left:10px">未配齐</el-tag>
+        </el-form-item>
+        <el-form-item label="APPID">
+          <el-input v-model="payCfg.alipaySmid" placeholder="支付宝应用 APPID" :disabled="!payCfg.alipayEnabled" />
+        </el-form-item>
+        <el-form-item label="应用私钥">
+          <el-input
+            v-model="payCfg.alipayPrivateKey"
+            type="textarea"
+            :rows="4"
+            :placeholder="payCfg.alipayPrivateKeyConfigured ? '已配置，留空不修改' : '应用私钥（PKCS8）'"
+            :disabled="!payCfg.alipayEnabled"
+          />
+        </el-form-item>
+        <el-form-item label="支付宝公钥">
+          <el-input
+            v-model="payCfg.alipayPublicKey"
+            type="textarea"
+            :rows="4"
+            :placeholder="payCfg.alipayPublicKeyConfigured ? '已配置，留空不修改' : '支付宝公钥'"
+            :disabled="!payCfg.alipayEnabled"
+          />
+        </el-form-item>
+        <el-form-item label="备注（选填）">
+          <el-input v-model="payCfg.onboardingRemark" type="textarea" :rows="2" placeholder="对接人、开通备注等" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="payCfgSaving" @click="savePayConfig">保存收款配置</el-button>
+          <span class="hint" style="margin-left:12px">保存后 App 住户端即可按已开通渠道缴费。</span>
+        </el-form-item>
+      </el-form>
+    </section>
+    </template>
+
+    <template v-else>
     <section class="block">
       <h3>预缴登记</h3>
       <p class="hint">约定月份与费项；实付可含折扣（优惠不进公开）。生效后：覆盖月已缴须先冲红；未缴账单自动去掉覆盖费项（空单作废）；以后出账跳过；实收按账期分摊计入公示。</p>
@@ -874,7 +1124,7 @@ onMounted(load)
           <el-select v-model="prepaidCats" multiple collapse-tags placeholder="费项大类" style="width:260px">
             <el-option v-for="o in feeCategoryOptions" :key="o.value" :label="categoryDefaultName(o.value)" :value="o.value" />
           </el-select>
-          <el-input-number v-model="prepaidCash" :min="0.01" :precision="2" :step="0.01" />
+          <el-input-number v-model="prepaidCash" :min="0.01" :precision="2" :step="0.01" :controls="false" />
           <el-button @click="previewPrepaid">算原价</el-button>
           <el-button type="success" @click="createPrepaidPlan">确认预缴</el-button>
           <el-button @click="loadPrepaid">刷新协议</el-button>
@@ -942,6 +1192,7 @@ onMounted(load)
       <p class="hint">
         先选<strong>费用大类</strong>（九大类写死；除「其他」外各大类本小区仅一条），再选<strong>计费方式</strong>（固定价格 / 公式算费 / 表格导入，三选一）。公式仅物业/车位/月保可用；显示名可改，财务归属仍按大类。
         <strong>启用</strong>=对本小区有住户房屋出账时计入；<strong>停用</strong>=不计入。
+        默认<strong>空列表</strong>，由物业自行新增；删除后不会自动恢复。未配置启用费项时无法生成账单。
       </p>
       <el-table :data="feeItems" size="small">
         <el-table-column type="index" label="序号" width="60" :index="(i: number) => i + 1" />
@@ -977,7 +1228,13 @@ onMounted(load)
               <el-button size="small" type="primary" link @click="saveParkingMonthly(row)">保存</el-button>
             </div>
             <div v-else-if="billingModeOf(row) === 'FIXED'" class="rule-row">
-              <span>元/房屋/月</span>
+              <span>{{
+                row.feeCategory === 'PARKING_MGMT'
+                  ? '元/车位·月'
+                  : row.feeCategory === 'PARKING_MONTHLY'
+                    ? '元/车·月'
+                    : '元/房屋/月'
+              }}</span>
               <el-input v-model="ensureRuleDraft(row.id).monthly" placeholder="元" style="width:100px" />
               <el-button size="small" type="primary" link @click="saveOtherMonthly(row)">保存</el-button>
             </div>
@@ -1005,18 +1262,49 @@ onMounted(load)
     <section class="block">
       <h3>房屋费项豁免</h3>
       <p class="hint">按房 + 费项类别 + 生效账期配置；出账时自动跳过。减免不计入财务公开余额。</p>
-      <div class="row wrap" style="margin-bottom:12px">
-        <el-input v-model="exForm.roomId" placeholder="房屋ID" style="width:110px" />
-        <el-select v-model="exForm.feeCategory" style="width:180px">
+      <div class="row wrap" style="margin-bottom:12px; gap:8px; align-items:center">
+        <el-select
+          v-model="exForm.roomId"
+          filterable
+          clearable
+          placeholder="搜索选房（楼栋-单元-楼层-房号）"
+          style="width:280px"
+        >
+          <el-option
+            v-for="r in prepaidRoomOptions"
+            :key="r.id"
+            :label="r.label"
+            :value="r.id"
+          />
+        </el-select>
+        <el-select v-model="exForm.feeCategory" style="width:160px">
           <el-option v-for="o in feeCategoryOptions" :key="o.value" :label="categoryDefaultName(o.value)" :value="o.value" />
         </el-select>
-        <el-input v-model="exForm.effectiveFrom" placeholder="起 YYYY-MM" style="width:120px" />
-        <el-input v-model="exForm.effectiveTo" placeholder="止 YYYY-MM 可空" style="width:140px" />
+        <el-date-picker
+          v-model="exForm.effectiveFrom"
+          type="month"
+          value-format="YYYY-MM"
+          placeholder="起始账期"
+          style="width:140px"
+          :clearable="false"
+        />
+        <span class="hint">至</span>
+        <el-date-picker
+          v-model="exForm.effectiveTo"
+          type="month"
+          value-format="YYYY-MM"
+          placeholder="结束账期（可空）"
+          style="width:150px"
+          clearable
+        />
         <el-input v-model="exForm.reason" placeholder="原因" style="width:160px" />
         <el-button type="primary" @click="createExemption">添加豁免</el-button>
       </div>
+      <p v-if="!prepaidRoomOptions.length" class="hint" style="margin:-4px 0 10px">暂无房屋，请先在「空间」维护楼栋房屋。</p>
       <el-table :data="exemptions" size="small">
-        <el-table-column prop="roomId" label="房屋ID" width="90" />
+        <el-table-column label="房屋" min-width="180">
+          <template #default="{ row }">{{ roomLabelOf(row.roomId) }}</template>
+        </el-table-column>
         <el-table-column label="费项大类" width="130">
           <template #default="{ row }">{{ categoryDefaultName(row.feeCategory) }}</template>
         </el-table-column>
@@ -1107,6 +1395,17 @@ onMounted(load)
           <span class="stat-label">将失败</span>
           <span class="stat-desc">缺资料或单价</span>
         </button>
+        <button
+          v-if="(previewSummary.mismatchCount || 0) > 0"
+          type="button"
+          class="stat-card bad-card"
+          :class="{ active: previewFilter === 'MISMATCH' }"
+          @click="setPreviewFilter('MISMATCH')"
+        >
+          <span class="stat-num">{{ previewSummary.mismatchCount }}</span>
+          <span class="stat-label">与已生成不一致</span>
+          <span class="stat-desc">二次预览有差异，红字行</span>
+        </button>
         <div v-if="previewSummary.propertyFeeEnabled" class="stat-card plain">
           <span class="stat-num">{{ previewSummary.propertyReadyCount }}/{{ previewSummary.includedCount }}</span>
           <span class="stat-label">物业费资料</span>
@@ -1127,12 +1426,20 @@ onMounted(load)
 
       <div class="preview-head">
         <h4>本月算费预览</h4>
-        <span class="muted">只读干跑，与生成逻辑一致；点上方数字可筛选</span>
+        <span class="muted">只读干跑，与生成逻辑一致；点上方数字可筛选。已有账单时，合计/费项不一致会红字标注。</span>
       </div>
-      <el-table :data="previewRooms" size="small" max-height="360" style="margin-bottom:16px">
+      <el-table
+        :data="previewRooms"
+        size="small"
+        max-height="360"
+        style="margin-bottom:16px"
+        :row-class-name="previewRowClassName"
+      >
         <el-table-column type="index" label="序号" width="55" :index="(i: number) => i + 1" />
         <el-table-column label="房屋" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.roomLabel || row.roomNo || row.roomId }}</template>
+          <template #default="{ row }">
+            <span :class="{ bad: row.diffWithGenerated }">{{ row.roomLabel || row.roomNo || row.roomId }}</span>
+          </template>
         </el-table-column>
         <el-table-column label="住户" width="70">
           <template #default="{ row }">{{ row.occupantCount ?? '—' }}</template>
@@ -1151,21 +1458,27 @@ onMounted(load)
         </el-table-column>
         <el-table-column label="预计费项" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ (row.expectedLines && row.expectedLines.length) ? row.expectedLines.join('、') : '—' }}
+            <span :class="{ bad: row.diffWithGenerated }">
+              {{ (row.expectedLines && row.expectedLines.length) ? row.expectedLines.join('、') : '—' }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="预计合计" width="90">
-          <template #default="{ row }">{{ row.estimatedTotal ?? '—' }}</template>
+          <template #default="{ row }">
+            <span :class="{ bad: row.diffWithGenerated }">{{ row.estimatedTotal ?? '—' }}</span>
+          </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 'READY'" size="small" type="success">可出账</el-tag>
+            <el-tag v-if="row.diffWithGenerated" size="small" type="danger">不一致</el-tag>
+            <el-tag v-else-if="row.status === 'READY'" size="small" type="success">可出账</el-tag>
             <el-tag v-else size="small" type="danger">将失败</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="说明" min-width="140" show-overflow-tooltip>
+        <el-table-column label="说明" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            <span v-if="row.failReason" class="bad">{{ row.failReason }}</span>
+            <span v-if="row.diffWithGenerated" class="bad">{{ row.diffReason }}</span>
+            <span v-else-if="row.failReason" class="bad">{{ row.failReason }}</span>
             <span v-else-if="row.billStatus" class="muted">本月已有 {{ billStatusLabel[row.billStatus] || row.billStatus }}</span>
             <span v-else class="muted">—</span>
           </template>
@@ -1244,6 +1557,7 @@ onMounted(load)
         </el-table-column>
       </el-table>
     </section>
+    </template>
 
     <el-dialog v-model="addVisible" title="新增费项" width="520px">
       <el-form label-position="top">
@@ -1266,8 +1580,25 @@ onMounted(load)
         <el-form-item :label="addForm.feeCategory === 'OTHER' ? '二级名称' : '显示名'" required>
           <el-input v-model="addForm.name" :placeholder="addForm.feeCategory === 'OTHER' ? '如：清洁费' : '可改显示名，财务归属仍按大类'" maxlength="32" />
         </el-form-item>
-        <el-form-item v-if="addForm.billingMode === 'FIXED'" label="固定金额（元/房屋/月）" required>
-          <el-input v-model="addForm.monthlyAmount" placeholder="如：5" style="width:160px" />
+        <el-form-item
+          v-if="addForm.billingMode === 'FIXED'"
+          :label="
+            addForm.feeCategory === 'PARKING_MGMT'
+              ? '固定单价（元/车位·月）'
+              : addForm.feeCategory === 'PARKING_MONTHLY'
+                ? '固定单价（元/车·月）'
+                : '固定金额（元/房屋/月）'
+          "
+          required
+        >
+          <el-input v-model="addForm.monthlyAmount" placeholder="如：50" style="width:160px" />
+          <p
+            v-if="addForm.feeCategory === 'PARKING_MGMT' || addForm.feeCategory === 'PARKING_MONTHLY'"
+            class="hint"
+            style="margin:6px 0 0"
+          >
+            按房屋实际车位/车辆数量计费；无绑定位或无超额车辆时该房不计此项。
+          </p>
         </el-form-item>
         <template v-if="addForm.billingMode === 'FORMULA' && addForm.feeCategory === 'PROPERTY_FEE'">
           <el-form-item label="计算公式">
@@ -1313,6 +1644,12 @@ onMounted(load)
 header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 h2 { margin: 0; color: #1f4e3d; }
 .sub { margin: 4px 0 0; color: #667; font-size: 14px; }
+.tabs { margin-top: 16px; }
+.pay-guide-card { background: #f7faf8; }
+.pay-status { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: #1f4e3d; line-height: 1.5; }
+.pay-steps { margin: 0; padding-left: 20px; color: #445; font-size: 14px; line-height: 1.7; }
+.pay-steps li { margin-bottom: 10px; }
+.pay-steps ul { margin: 6px 0 0; padding-left: 20px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .block {
@@ -1355,6 +1692,15 @@ h3 { margin: 0 0 12px; color: #2a4a3c; font-size: 16px; }
 .stat-card.active { outline: 2px solid #2a6f4e; background: #eef6f1; }
 .stat-card.ok-card.active { outline-color: #2a7a4b; }
 .stat-card.bad-card.active { outline-color: #c45656; background: #fdf4f4; }
+:deep(.preview-row-mismatch) {
+  --el-table-tr-bg-color: #fff5f5;
+}
+:deep(.preview-row-mismatch td.el-table__cell) {
+  background: #fff5f5 !important;
+}
+:deep(.preview-row-mismatch:hover > td.el-table__cell) {
+  background: #ffeaea !important;
+}
 .stat-num { display: block; font-size: 22px; font-weight: 700; color: #1f4e3d; line-height: 1.2; }
 .stat-label { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: #2a4a3c; }
 .stat-desc { display: block; margin-top: 2px; font-size: 12px; color: #6a7a74; line-height: 1.35; }

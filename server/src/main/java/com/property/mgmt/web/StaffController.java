@@ -301,6 +301,12 @@ public class StaffController {
         return ApiResponse.ok();
     }
 
+    @DeleteMapping("/parking-spaces/{id}")
+    public ApiResponse<Void> deleteParking(@PathVariable Long id) {
+        parkingService.delete(id);
+        return ApiResponse.ok();
+    }
+
     // ----- committee -----
 
     @GetMapping("/committee-members")

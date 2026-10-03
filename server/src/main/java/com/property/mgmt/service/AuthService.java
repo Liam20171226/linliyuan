@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -148,8 +149,15 @@ public class AuthService {
             throw BizException.of(ErrorCodes.FORBIDDEN, "平台账号请使用管理后台");
         }
         List<Map<String, Object>> identities = listIdentities(user.getId());
+        // 游客（含小程序先登录再 H5 设密）允许无业务绑定时以 GUEST 进入
         if (identities.isEmpty()) {
-            throw BizException.of(ErrorCodes.FORBIDDEN, "账号无小区身份，请先完成住户认证或物业任职");
+            if ("APP_GUEST".equals(user.getRegisterSource())) {
+                Map<String, Object> guest = new LinkedHashMap<>();
+                guest.put("identityType", "GUEST");
+                identities = new ArrayList<>(List.of(guest));
+            } else {
+                throw BizException.of(ErrorCodes.FORBIDDEN, "账号无小区身份，请先完成住户认证或物业任职");
+            }
         }
         touchLogin(user);
         AuthUser auth = AuthUser.builder()
@@ -210,14 +218,79 @@ public class AuthService {
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setMustChangePassword(0);
+        if ("APP_GUEST".equals(user.getRegisterSource())) {
+            if (newPassword.length() > 13) {
+                throw BizException.of(ErrorCodes.BAD_PARAM, "游客密码最多 13 位");
+            }
+            user.setPasswordPlain(newPassword);
+        }
         user.setUpdatedAt(LocalDateTime.now());
         sysUserMapper.updateById(user);
         return Map.of("mustChangePassword", false);
     }
 
     /**
-     * mock：code → openid；正式：微信 jscode2session。
+     * 注册前查号：已设密码视为占用；仅有小程序建号、尚未设 App 密码时可在注册流程中补密（claimable）。
      */
+    public Map<String, Object> isMobileTaken(String mobile) {
+        if (mobile == null || !mobile.trim().matches("1\\d{10}")) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "请输入正确手机号");
+        }
+        String m = mobile.trim();
+        SysUser exist = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getMobile, m));
+        if (exist == null) {
+            return Map.of("taken", false, "claimable", false, "mobile", m);
+        }
+        boolean hasPwd = StringUtils.hasText(exist.getPasswordHash());
+        return Map.of("taken", hasPwd, "claimable", !hasPwd, "mobile", m);
+    }
+
+    /**
+     * App 游客自助注册：手机号 + 密码；默认姓名「游客」。
+     * 若号码已被小程序占用且尚未设密码，则为同一账号补密并登录（不新建）。
+     */
+    @Transactional
+    public Map<String, Object> appRegister(String mobile, String password) {
+        if (mobile == null || !mobile.trim().matches("1\\d{10}")) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "请使用 11 位手机号注册");
+        }
+        String m = mobile.trim();
+        if (password == null || password.length() < 6 || password.length() > 13) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "密码须为 6～13 位");
+        }
+        SysUser exist = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getMobile, m));
+        if (exist != null) {
+            if (StringUtils.hasText(exist.getPasswordHash())) {
+                throw BizException.of(ErrorCodes.MOBILE_TAKEN, "当前手机号码正在使用，请联系工作人员。");
+            }
+            // 小程序等先建号、无 App 密码：补密后登录同一账号
+            exist.setPasswordHash(passwordEncoder.encode(password));
+            exist.setPasswordPlain(password);
+            exist.setMustChangePassword(0);
+            if (!StringUtils.hasText(exist.getRegisterSource())) {
+                exist.setRegisterSource("APP_GUEST");
+            }
+            if (!StringUtils.hasText(exist.getRealName())) {
+                exist.setRealName("游客");
+            }
+            exist.setUpdatedAt(LocalDateTime.now());
+            sysUserMapper.updateById(exist);
+            return appLogin(m, password);
+        }
+        SysUser user = new SysUser();
+        user.setMobile(m);
+        user.setRealName("游客");
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setPasswordPlain(password);
+        user.setRegisterSource("APP_GUEST");
+        user.setMustChangePassword(0);
+        user.setIsPlatformAdmin(0);
+        user.setStatus(1);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        sysUserMapper.insert(user);
+        return appLogin(m, password);
+    }
     public Map<String, Object> code2session(String code) {
         String openid = wechatMiniApi.resolveOpenid(code);
         UserWechat bind = userWechatMapper.selectOne(new LambdaQueryWrapper<UserWechat>()
@@ -288,18 +361,41 @@ public class AuthService {
             }
         } else if (existingWx != null) {
             user = sysUserMapper.selectById(existingWx.getUserId());
-            if (user.getMobile() != null && !user.getMobile().equals(mobile)) {
-                SysUser conflict = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getMobile, mobile));
-                if (conflict != null) {
-                    throw BizException.of(ErrorCodes.MOBILE_TAKEN, "请联系物业管理人员");
+            if (user == null) {
+                // 用户已删、微信绑定残留（如管理端删游客未清绑定）→ 清孤儿绑定后重建
+                userWechatMapper.deleteById(existingWx.getId());
+                user = new SysUser();
+                user.setMobile(mobile);
+                user.setRealName("游客");
+                user.setRegisterSource("APP_GUEST");
+                user.setStatus(1);
+                user.setIsPlatformAdmin(0);
+                user.setCreatedAt(LocalDateTime.now());
+                user.setUpdatedAt(LocalDateTime.now());
+                sysUserMapper.insert(user);
+                bindWechat(user.getId(), openid);
+            } else {
+                if (user.getMobile() != null && !user.getMobile().equals(mobile)) {
+                    SysUser conflict = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getMobile, mobile));
+                    if (conflict != null) {
+                        throw BizException.of(ErrorCodes.MOBILE_TAKEN, "请联系物业管理人员");
+                    }
                 }
+                user.setMobile(mobile);
+                if (!StringUtils.hasText(user.getRegisterSource())) {
+                    user.setRegisterSource("APP_GUEST");
+                }
+                if (!StringUtils.hasText(user.getRealName())) {
+                    user.setRealName("游客");
+                }
+                user.setUpdatedAt(LocalDateTime.now());
+                sysUserMapper.updateById(user);
             }
-            user.setMobile(mobile);
-            user.setUpdatedAt(LocalDateTime.now());
-            sysUserMapper.updateById(user);
         } else {
             user = new SysUser();
             user.setMobile(mobile);
+            user.setRealName("游客");
+            user.setRegisterSource("APP_GUEST");
             user.setStatus(1);
             user.setIsPlatformAdmin(0);
             user.setCreatedAt(LocalDateTime.now());

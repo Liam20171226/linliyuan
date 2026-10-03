@@ -26,5 +26,9 @@ public class PaymentRecord {
     private String feeTypeLabel;
     /** 收款当时费项编码，逗号分隔 */
     private String feeCategories;
+    /** 平台支付单号（线上） */
+    private String outTradeNo;
+    /** 第三方/聚合交易号 */
+    private String thirdTradeNo;
     private LocalDateTime createdAt;
 }

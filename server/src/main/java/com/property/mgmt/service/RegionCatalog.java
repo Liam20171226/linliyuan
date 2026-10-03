@@ -63,18 +63,26 @@ public final class RegionCatalog {
         }
     }
 
-    /** 直辖市市名与省名相同时不重复拼接，如 上海市黄浦区xxx */
+    /**
+     * 入库/展示地址：{@code 省/市/区/} + 具体地址。
+     * 例：{@code 北京市/北京市/东城区/桃园小区}；仅地区时末尾保留 {@code /}。
+     * 省、市、区均写出（直辖市市名与省名相同也保留，便于展示一致）。
+     */
     public static String composeAddress(String provinceName, String cityName, String districtName, String detail) {
-        String p = provinceName == null ? "" : provinceName;
-        String c = cityName == null ? "" : cityName;
-        String d = districtName == null ? "" : districtName;
+        String p = provinceName == null ? "" : provinceName.trim();
+        String c = cityName == null ? "" : cityName.trim();
+        String d = districtName == null ? "" : districtName.trim();
         String t = detail == null ? "" : detail.trim();
         StringBuilder sb = new StringBuilder();
-        sb.append(p);
-        if (!c.isEmpty() && !c.equals(p)) {
-            sb.append(c);
+        if (!p.isEmpty()) {
+            sb.append(p).append('/');
         }
-        sb.append(d);
+        if (!c.isEmpty()) {
+            sb.append(c).append('/');
+        }
+        if (!d.isEmpty()) {
+            sb.append(d).append('/');
+        }
         sb.append(t);
         return sb.toString();
     }
@@ -111,7 +119,7 @@ public final class RegionCatalog {
                                 String districtCode, String districtName,
                                 String detail) {}
 
-    /** 从已存拼接地址尽量还原省市区与详细地址，供编辑回填 */
+    /** 从已存拼接地址尽量还原省市区与详细地址，供编辑回填（兼容旧无斜杠拼接） */
     public static ParsedAddress parseAddress(String address) {
         if (!hasText(address)) {
             return null;
@@ -133,9 +141,10 @@ public final class RegionCatalog {
                 for (Map<String, Object> d : districts) {
                     String dName = String.valueOf(d.get("name"));
                     String dCode = String.valueOf(d.get("code"));
-                    String full = pName + cName + dName;
-                    String dedup = pName.equals(cName) ? pName + dName : full;
-                    for (String prefix : new String[]{full, dedup}) {
+                    String slash = pName + "/" + cName + "/" + dName + "/";
+                    String legacyFull = pName + cName + dName;
+                    String legacyDedup = pName.equals(cName) ? pName + dName : legacyFull;
+                    for (String prefix : new String[]{slash, legacyFull, legacyDedup}) {
                         if (address.startsWith(prefix) && prefix.length() > bestLen) {
                             bestLen = prefix.length();
                             best = new ParsedAddress(pCode, pName, cCode, cName, dCode, dName,

@@ -34,9 +34,13 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/v1/auth/platform/login",
                         "/api/v1/auth/staff/login",
                         "/api/v1/auth/app/login",
+                        "/api/v1/auth/app/register",
+                        "/api/v1/auth/app/mobile-taken",
                         "/api/v1/auth/miniapp/code2session",
                         "/api/v1/auth/miniapp/phone-match",
-                        "/api/v1/pay/wechat/notify"
+                        "/api/v1/pay/wechat/notify",
+                        "/api/v1/pay/alipay/notify",
+                        "/api/v1/pay/notify/**"
                 );
     }
 

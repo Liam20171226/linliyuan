@@ -28,7 +28,7 @@ public class RoomOccupantBindService {
             "OWNER", "OWNER_MEMBER", "TENANT", "TENANT_MEMBER");
 
     private static final List<String> ROLE_PRIORITY = List.of(
-            "OWNER", "TENANT", "OWNER_MEMBER", "TENANT_MEMBER");
+            "OWNER", "OWNER_MEMBER", "TENANT", "TENANT_MEMBER");
 
     private final RoomOccupantMapper roomOccupantMapper;
     private final SysUserMapper sysUserMapper;
@@ -157,7 +157,7 @@ public class RoomOccupantBindService {
 
     /**
      * 存量：同房同人多条 ACTIVE 折叠为一条。
-     * 保留优先级 OWNER &gt; TENANT &gt; OWNER_MEMBER &gt; TENANT_MEMBER，同级留 id 较小者。
+     * 保留优先级 OWNER &gt; OWNER_MEMBER &gt; TENANT &gt; TENANT_MEMBER，同级留 id 较小者（创建更早）。
      */
     @Transactional
     public int dedupeActiveOccupants() {

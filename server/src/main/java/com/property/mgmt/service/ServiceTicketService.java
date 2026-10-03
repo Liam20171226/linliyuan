@@ -715,16 +715,26 @@ public class ServiceTicketService {
         }
         escalateOverdue(cid);
         Set<String> myRoles = myRoleSet(u.getUserId(), cid);
+        boolean office = myRoles.stream().anyMatch(StaffRoles::canLoginWeb)
+                || u.isPlatformAdmin()
+                || "PLATFORM".equals(u.getIdentityType());
         LambdaQueryWrapper<ServiceTicket> q = new LambdaQueryWrapper<ServiceTicket>()
                 .eq(ServiceTicket::getNodeType, NODE_TICKET)
                 .eq(ServiceTicket::getCommunityId, cid)
                 .in(ServiceTicket::getStatus, List.of("ASSIGNED", "IN_PROGRESS", "PROCESSING", "REPLIED"))
                 .and(w -> {
+                    // 指派到本人
                     w.eq(ServiceTicket::getAssigneeUserId, u.getUserId());
+                    // 派到本人所属岗位、尚未接单
                     if (!myRoles.isEmpty()) {
                         w.or(x -> x.isNull(ServiceTicket::getAssigneeUserId)
                                 .isNotNull(ServiceTicket::getAssigneeRole)
                                 .in(ServiceTicket::getAssigneeRole, myRoles));
+                    }
+                    // 客服/经理：可见任意岗位「已派岗待接单」，便于跟进/转派（与办理权限一致）
+                    if (office) {
+                        w.or(x -> x.isNull(ServiceTicket::getAssigneeUserId)
+                                .isNotNull(ServiceTicket::getAssigneeRole));
                     }
                 })
                 .orderByDesc(ServiceTicket::getId);

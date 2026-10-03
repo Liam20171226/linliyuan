@@ -203,6 +203,30 @@ public class ParkingService {
         autoBindUnboundVehicles(newRoom.getId());
     }
 
+    /** 软删除车位：先解绑车辆/房屋，再标记 deleted_at。 */
+    @Transactional
+    public void delete(Long id) {
+        ParkingSpace p = require(id);
+        Long roomId = p.getRoomId();
+        if (roomId != null) {
+            rebalanceVehicleLeavingSpace(p.getId(), roomId);
+            p.setRoomId(null);
+        } else {
+            // 未挂房也可能被车辆误绑，清掉引用
+            RoomVehicle vehicle = roomVehicleMapper.selectOne(new LambdaQueryWrapper<RoomVehicle>()
+                    .eq(RoomVehicle::getParkingSpaceId, p.getId()));
+            if (vehicle != null) {
+                vehicle.setParkingSpaceId(null);
+                vehicle.setUpdatedAt(LocalDateTime.now());
+                roomVehicleMapper.updateById(vehicle);
+            }
+        }
+        LocalDateTime now = LocalDateTime.now();
+        p.setDeletedAt(now);
+        p.setUpdatedAt(now);
+        parkingSpaceMapper.updateById(p);
+    }
+
     /**
      * 车位脱离：原绑该车位的车先脱离，再按 space_no 尝试绑到本房下一空闲车位。
      */

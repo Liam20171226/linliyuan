@@ -1,7 +1,6 @@
 package com.property.mgmt.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.property.mgmt.common.BizException;
 import com.property.mgmt.common.DefaultWebPassword;
 import com.property.mgmt.common.ErrorCodes;
@@ -127,8 +126,7 @@ public class OccupantQueryService {
         }
 
         LambdaQueryWrapper<RoomOccupant> q = new LambdaQueryWrapper<RoomOccupant>()
-                .eq(RoomOccupant::getStatus, "ACTIVE")
-                .orderByDesc(RoomOccupant::getId);
+                .eq(RoomOccupant::getStatus, "ACTIVE");
         if (communityId != null) {
             q.eq(RoomOccupant::getCommunityId, communityId);
         }
@@ -142,22 +140,112 @@ public class OccupantQueryService {
             q.eq(RoomOccupant::getResidentRole, role.trim());
         }
 
-        Page<RoomOccupant> p = roomOccupantMapper.selectPage(new Page<>(page, pageSize), q);
+        List<RoomOccupant> all = roomOccupantMapper.selectList(q);
+        sortBySpaceStructure(all);
+        long total = all.size();
+        int from = Math.max(0, (page - 1) * pageSize);
+        int to = Math.min(all.size(), from + pageSize);
+        List<RoomOccupant> pageRecords = from >= all.size() ? List.of() : all.subList(from, to);
+
         Map<Long, String> committeeTitles = communityId == null
                 ? Map.of()
                 : committeeService.activeTitleByUser(communityId);
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (RoomOccupant o : p.getRecords()) {
+        for (RoomOccupant o : pageRecords) {
             Map<String, Object> row = toRow(o, maskIdCard);
             row.put("committeeTitle", committeeTitles.get(o.getUserId()));
             rows.add(row);
         }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("list", rows);
-        data.put("total", p.getTotal());
+        data.put("total", total);
         data.put("page", page);
         data.put("pageSize", pageSize);
         return data;
+    }
+
+    /** 按楼栋名 → 单元名 → 楼层号/名 → 房号 排列，同房再按绑定 id */
+    private void sortBySpaceStructure(List<RoomOccupant> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        Set<Long> roomIds = list.stream()
+                .map(RoomOccupant::getRoomId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (roomIds.isEmpty()) {
+            list.sort(Comparator.comparing(RoomOccupant::getId, Comparator.nullsLast(Long::compareTo)));
+            return;
+        }
+        Map<Long, Room> rooms = roomMapper.selectByIds(roomIds).stream()
+                .collect(Collectors.toMap(Room::getId, r -> r, (a, b) -> a));
+        Set<Long> buildingIds = new HashSet<>();
+        Set<Long> unitIds = new HashSet<>();
+        Set<Long> floorIds = new HashSet<>();
+        for (Room r : rooms.values()) {
+            if (r.getBuildingId() != null) buildingIds.add(r.getBuildingId());
+            if (r.getUnitId() != null) unitIds.add(r.getUnitId());
+            if (r.getFloorId() != null) floorIds.add(r.getFloorId());
+        }
+        Map<Long, Building> buildings = buildingIds.isEmpty() ? Map.of()
+                : buildingMapper.selectByIds(buildingIds).stream()
+                .collect(Collectors.toMap(Building::getId, b -> b, (a, b) -> a));
+        Map<Long, Unit> units = unitIds.isEmpty() ? Map.of()
+                : unitMapper.selectByIds(unitIds).stream()
+                .collect(Collectors.toMap(Unit::getId, u -> u, (a, b) -> a));
+        Map<Long, Floor> floors = floorIds.isEmpty() ? Map.of()
+                : floorMapper.selectByIds(floorIds).stream()
+                .collect(Collectors.toMap(Floor::getId, f -> f, (a, b) -> a));
+
+        list.sort(Comparator
+                .comparing((RoomOccupant o) -> {
+                    Room r = rooms.get(o.getRoomId());
+                    Building b = r == null || r.getBuildingId() == null ? null : buildings.get(r.getBuildingId());
+                    return b == null ? "" : Optional.ofNullable(b.getName()).orElse("");
+                }, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(o -> {
+                    Room r = rooms.get(o.getRoomId());
+                    Unit u = r == null || r.getUnitId() == null ? null : units.get(r.getUnitId());
+                    return u == null ? "" : Optional.ofNullable(u.getName()).orElse("");
+                }, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(o -> {
+                    Room r = rooms.get(o.getRoomId());
+                    Floor f = r == null || r.getFloorId() == null ? null : floors.get(r.getFloorId());
+                    return f == null || f.getFloorNo() == null ? Integer.MAX_VALUE : f.getFloorNo();
+                })
+                .thenComparing(o -> {
+                    Room r = rooms.get(o.getRoomId());
+                    Floor f = r == null || r.getFloorId() == null ? null : floors.get(r.getFloorId());
+                    return f == null ? "" : Optional.ofNullable(f.getName()).orElse("");
+                }, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(o -> {
+                    Room r = rooms.get(o.getRoomId());
+                    return r == null ? "" : Optional.ofNullable(r.getRoomNo()).orElse("");
+                }, naturalRoomNoComparator())
+                .thenComparingInt(o -> roleDisplayRank(o.getResidentRole()))
+                .thenComparing(RoomOccupant::getCreatedAt, Comparator.nullsLast(LocalDateTime::compareTo))
+                .thenComparing(RoomOccupant::getId, Comparator.nullsLast(Long::compareTo)));
+    }
+
+    /** 展示序：业主 → 业主成员 → 租户 → 租户成员 */
+    private static int roleDisplayRank(String role) {
+        if ("OWNER".equals(role)) return 0;
+        if ("OWNER_MEMBER".equals(role)) return 1;
+        if ("TENANT".equals(role)) return 2;
+        if ("TENANT_MEMBER".equals(role)) return 3;
+        return 99;
+    }
+
+    private static Comparator<String> naturalRoomNoComparator() {
+        return (a, b) -> {
+            String x = a == null ? "" : a;
+            String y = b == null ? "" : b;
+            try {
+                return Integer.compare(Integer.parseInt(x.trim()), Integer.parseInt(y.trim()));
+            } catch (NumberFormatException e) {
+                return String.CASE_INSENSITIVE_ORDER.compare(x, y);
+            }
+        };
     }
 
     private Map<String, Object> toRow(RoomOccupant o, boolean maskIdCard) {
@@ -191,6 +279,7 @@ public class OccupantQueryService {
         row.put("residentRole", o.getResidentRole());
         row.put("source", o.getSource());
         row.put("approvedAt", o.getApprovedAt());
+        row.put("createdAt", o.getCreatedAt());
         return row;
     }
 

@@ -89,15 +89,18 @@ public class PlatformService {
             String p = provinceName.trim();
             String c = StringUtils.hasText(cityName) ? cityName.trim() : "";
             String d = StringUtils.hasText(districtName) ? districtName.trim() : "";
-            String composed = RegionCatalog.composeAddress(p, c, d, null);
-            String raw = p + c + d;
-            if (raw.equals(composed)) {
-                q.likeRight(Community::getAddress, composed);
-            } else {
-                q.and(w -> w.likeRight(Community::getAddress, composed)
-                        .or()
-                        .likeRight(Community::getAddress, raw));
-            }
+            String slash = RegionCatalog.composeAddress(p, c, d, null);
+            String legacyFull = p + c + d;
+            String legacyDedup = !c.isEmpty() && c.equals(p) ? p + d : legacyFull;
+            q.and(w -> {
+                w.likeRight(Community::getAddress, slash);
+                if (StringUtils.hasText(legacyFull)) {
+                    w.or().likeRight(Community::getAddress, legacyFull);
+                }
+                if (StringUtils.hasText(legacyDedup) && !legacyDedup.equals(legacyFull)) {
+                    w.or().likeRight(Community::getAddress, legacyDedup);
+                }
+            });
         }
         Page<Community> pageResult = communityMapper.selectPage(new Page<>(page, pageSize), q);
         return Map.of("list", pageResult.getRecords(), "total", pageResult.getTotal(), "page", page, "pageSize", pageSize);
@@ -871,5 +874,99 @@ public class PlatformService {
         user.setUpdatedAt(LocalDateTime.now());
         sysUserMapper.updateById(user);
         return new HashMap<>();
+    }
+
+    /** App 自助注册游客列表 */
+    public Map<String, Object> listGuests(String mobile, int page, int pageSize) {
+        requirePlatform();
+        LambdaQueryWrapper<SysUser> q = new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getRegisterSource, "APP_GUEST")
+                .eq(SysUser::getStatus, 1)
+                .orderByDesc(SysUser::getId);
+        if (StringUtils.hasText(mobile)) {
+            q.like(SysUser::getMobile, mobile.trim());
+        }
+        Page<SysUser> pageResult = sysUserMapper.selectPage(new Page<>(page, pageSize), q);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (SysUser u : pageResult.getRecords()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", u.getId());
+            row.put("realName", Optional.ofNullable(u.getRealName()).filter(StringUtils::hasText).orElse("游客"));
+            row.put("mobile", Optional.ofNullable(u.getMobile()).orElse(""));
+            row.put("password", Optional.ofNullable(u.getPasswordPlain()).orElse(""));
+            row.put("createdAt", u.getCreatedAt());
+            list.add(row);
+        }
+        return Map.of("list", list, "total", pageResult.getTotal(), "page", page, "pageSize", pageSize);
+    }
+
+    @Transactional
+    public Map<String, Object> updateGuest(Long id, String realName, String mobile, String password) {
+        requirePlatform();
+        SysUser user = requireGuestUser(id);
+        if (realName != null) {
+            String name = realName.trim();
+            user.setRealName(name.isEmpty() ? "游客" : name);
+        }
+        if (mobile != null) {
+            String next = mobile.trim();
+            if (!next.matches("1\\d{10}")) {
+                throw BizException.of(ErrorCodes.BAD_PARAM, "手机号须为 11 位数字");
+            }
+            SysUser taken = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                    .eq(SysUser::getMobile, next)
+                    .ne(SysUser::getId, id));
+            if (taken != null) {
+                throw BizException.of(ErrorCodes.MOBILE_TAKEN, "手机号已被占用");
+            }
+            user.setMobile(next);
+        }
+        if (password != null) {
+            String pwd = password.trim();
+            if (pwd.length() < 6 || pwd.length() > 13) {
+                throw BizException.of(ErrorCodes.BAD_PARAM, "密码须为 6～13 位");
+            }
+            user.setPasswordHash(passwordEncoder.encode(pwd));
+            user.setPasswordPlain(pwd);
+            user.setMustChangePassword(0);
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+        sysUserMapper.updateById(user);
+        return Map.of("id", user.getId());
+    }
+
+    @Transactional
+    public Map<String, Object> deleteGuests(List<Long> ids) {
+        requirePlatform();
+        if (ids == null || ids.isEmpty()) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "请选择要删除的游客");
+        }
+        int ok = 0;
+        for (Long id : ids) {
+            if (id == null) continue;
+            SysUser user = sysUserMapper.selectById(id);
+            if (user == null || !"APP_GUEST".equals(user.getRegisterSource())) {
+                continue;
+            }
+            if (Objects.equals(user.getIsPlatformAdmin(), 1)) {
+                continue;
+            }
+            userWechatMapper.delete(new LambdaQueryWrapper<UserWechat>()
+                    .eq(UserWechat::getUserId, id));
+            sysUserMapper.deleteById(id);
+            ok++;
+        }
+        return Map.of("deleted", ok);
+    }
+
+    private SysUser requireGuestUser(Long id) {
+        SysUser user = sysUserMapper.selectById(id);
+        if (user == null || !"APP_GUEST".equals(user.getRegisterSource())) {
+            throw BizException.of(ErrorCodes.NOT_FOUND, "游客不存在");
+        }
+        if (Objects.equals(user.getIsPlatformAdmin(), 1)) {
+            throw BizException.of(ErrorCodes.FORBIDDEN, "不可操作平台管理员");
+        }
+        return user;
     }
 }

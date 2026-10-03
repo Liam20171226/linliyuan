@@ -38,6 +38,15 @@ app:
       private-key-pem: ${WX_MCH_PRIVATE_KEY:}
       notify-url: ${WX_PAY_NOTIFY_URL:}
       app-id: ${WX_PAY_APPID:}
+  # 多物业收款：默认持牌聚合子商户模式（结算进各物业）；密钥仅平台级
+  pay:
+    vendor: ${PAY_VENDOR:OFFICIAL}
+    mock: ${PAY_MOCK:true}
+    platform-mch-id: ${PAY_PLATFORM_MCH_ID:}
+    app-id: ${PAY_APP_ID:}
+    api-key: ${PAY_API_KEY:}
+    notify-base-url: ${PAY_NOTIFY_BASE_URL:}
+    mock-allow-without-onboarding: ${PAY_MOCK_ALLOW_WITHOUT_ONBOARDING:true}
   upload:
     dir: ${UPLOAD_DIR:../uploads}
 
@@ -117,6 +126,14 @@ app:
     secret: ${WX_SECRET}
     pay:
       mock: ${WX_PAY_MOCK:false}
+  pay:
+    vendor: ${PAY_VENDOR:OFFICIAL}
+    mock: ${PAY_MOCK:false}
+    platform-mch-id: ${PAY_PLATFORM_MCH_ID:}
+    app-id: ${PAY_APP_ID:}
+    api-key: ${PAY_API_KEY:}
+    notify-base-url: ${PAY_NOTIFY_BASE_URL:}
+    mock-allow-without-onboarding: false
 
 # 生产关闭 Swagger / OpenAPI
 springdoc:

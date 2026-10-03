@@ -148,6 +148,24 @@ public class PlatformController {
         return ApiResponse.ok(platformService.disableUser(id));
     }
 
+    @GetMapping("/platform/guests")
+    public ApiResponse<Map<String, Object>> listGuests(
+            @RequestParam(required = false) String mobile,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        return ApiResponse.ok(platformService.listGuests(mobile, page, pageSize));
+    }
+
+    @PutMapping("/platform/guests/{id}")
+    public ApiResponse<Map<String, Object>> updateGuest(@PathVariable Long id, @RequestBody GuestUpdateReq req) {
+        return ApiResponse.ok(platformService.updateGuest(id, req.getRealName(), req.getMobile(), req.getPassword()));
+    }
+
+    @PostMapping("/platform/guests/batch-delete")
+    public ApiResponse<Map<String, Object>> deleteGuests(@RequestBody GuestBatchDeleteReq req) {
+        return ApiResponse.ok(platformService.deleteGuests(req.getIds()));
+    }
+
     @PutMapping("/platform/users/{id}/staff-community")
     public ApiResponse<Map<String, Object>> setUserStaffCommunity(
             @PathVariable Long id, @RequestBody StaffCommunitySetReq req) {
@@ -243,6 +261,18 @@ public class PlatformController {
     public static class UserUpdateReq {
         private String realName;
         private String mobile;
+    }
+
+    @Data
+    public static class GuestUpdateReq {
+        private String realName;
+        private String mobile;
+        private String password;
+    }
+
+    @Data
+    public static class GuestBatchDeleteReq {
+        private List<Long> ids;
     }
 
     @Data

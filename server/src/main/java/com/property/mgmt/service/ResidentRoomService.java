@@ -90,6 +90,20 @@ public class ResidentRoomService {
                 .eq(ParkingSpace::getRoomId, roomId)
                 .isNull(ParkingSpace::getDeletedAt)
                 .orderByAsc(ParkingSpace::getSpaceNo));
+        Map<Long, String> spaceNoById = new HashMap<>();
+        for (ParkingSpace ps : parkings) {
+            spaceNoById.put(ps.getId(), Optional.ofNullable(ps.getSpaceNo()).orElse(""));
+        }
+        List<Map<String, Object>> vehicleRows = new ArrayList<>();
+        for (RoomVehicle v : vehicles) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", v.getId());
+            row.put("plateNo", v.getPlateNo());
+            row.put("parkingSpaceId", v.getParkingSpaceId());
+            String spaceNo = v.getParkingSpaceId() == null ? null : spaceNoById.get(v.getParkingSpaceId());
+            row.put("parkingSpaceNo", spaceNo == null ? "" : spaceNo);
+            vehicleRows.add(row);
+        }
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("roomId", room.getId());
@@ -101,7 +115,7 @@ public class ResidentRoomService {
         data.put("houseTypeName", ht == null ? null : ht.getName());
         data.put("myRole", me.getResidentRole());
         data.put("members", memberRows);
-        data.put("vehicles", vehicles);
+        data.put("vehicles", vehicleRows);
         data.put("parkingSpaces", parkings);
         if ("OWNER".equals(me.getResidentRole())) {
             data.put("archives", attachmentService.listByBiz("ROOM_ARCHIVE", roomId));

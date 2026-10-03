@@ -145,7 +145,9 @@ public class VoteService {
 
     public Map<String, Object> residentList(int page, int pageSize) {
         AuthUser u = requireOwner();
-        return listByCommunity(u.getCommunityId(), page, pageSize);
+        Map<String, Object> data = listByCommunity(u.getCommunityId(), page, pageSize);
+        annotateResidentPending(u, data);
+        return data;
     }
 
     public Map<String, Object> residentGet(Long id) {
@@ -216,6 +218,10 @@ public class VoteService {
             nb.setUpdatedAt(now);
             voteBallotMapper.insert(nb);
             result.add(nb);
+        }
+        if (ownerRoomsFullyVoted(u.getUserId(), u.getCommunityId(), voteId)) {
+            todoNotifyService.doneByBiz("VOTE", voteId, "VOTE_START");
+            todoNotifyService.doneByBiz("VOTE", voteId, "VOTE_NEAR_DEADLINE");
         }
         return result;
     }
@@ -315,6 +321,84 @@ public class VoteService {
                         .eq(Vote::getCreatorRole, "COMMITTEE")
                         .orderByDesc(Vote::getId));
         return pageOfVotes(p, page, pageSize);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void annotateResidentPending(AuthUser u, Map<String, Object> data) {
+        List<Map<String, Object>> list = (List<Map<String, Object>>) data.get("list");
+        if (list == null || list.isEmpty()) {
+            data.put("pendingVoteCount", 0);
+            return;
+        }
+        List<Long> roomIds = ownerRoomIds(u.getUserId(), u.getCommunityId());
+        int pending = 0;
+        LocalDateTime now = LocalDateTime.now();
+        for (Map<String, Object> row : list) {
+            Long voteId = row.get("id") instanceof Number n ? n.longValue() : null;
+            boolean open = isVoteWindowOpen(row.get("startAt"), row.get("endAt"), now);
+            boolean voted = voteId != null && ownerRoomsFullyVoted(u.getUserId(), u.getCommunityId(), voteId, roomIds);
+            boolean pendingVote = open && !voted;
+            row.put("voted", voted);
+            row.put("pendingVote", pendingVote);
+            if (pendingVote) {
+                pending++;
+            }
+        }
+        data.put("pendingVoteCount", pending);
+    }
+
+    private List<Long> ownerRoomIds(Long userId, Long communityId) {
+        return roomOccupantMapper.selectList(new LambdaQueryWrapper<RoomOccupant>()
+                        .eq(RoomOccupant::getUserId, userId)
+                        .eq(RoomOccupant::getCommunityId, communityId)
+                        .eq(RoomOccupant::getResidentRole, "OWNER")
+                        .eq(RoomOccupant::getStatus, "ACTIVE"))
+                .stream().map(RoomOccupant::getRoomId).filter(Objects::nonNull).distinct().toList();
+    }
+
+    private boolean ownerRoomsFullyVoted(Long userId, Long communityId, Long voteId) {
+        return ownerRoomsFullyVoted(userId, communityId, voteId, ownerRoomIds(userId, communityId));
+    }
+
+    private boolean ownerRoomsFullyVoted(Long userId, Long communityId, Long voteId, List<Long> roomIds) {
+        if (voteId == null || roomIds == null || roomIds.isEmpty()) {
+            return false;
+        }
+        long voted = voteBallotMapper.selectCount(new LambdaQueryWrapper<VoteBallot>()
+                .eq(VoteBallot::getVoteId, voteId)
+                .in(VoteBallot::getRoomId, roomIds));
+        return voted >= roomIds.size();
+    }
+
+    private static boolean isVoteWindowOpen(Object startAt, Object endAt, LocalDateTime now) {
+        LocalDateTime start = parseDateTime(startAt);
+        LocalDateTime end = parseDateTime(endAt);
+        if (start == null || end == null) {
+            return false;
+        }
+        return !now.isBefore(start) && now.isBefore(end);
+    }
+
+    private static LocalDateTime parseDateTime(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof LocalDateTime t) {
+            return t;
+        }
+        String s = String.valueOf(v).trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(s.length() > 19 ? s.substring(0, 19) : s);
+        } catch (Exception e) {
+            try {
+                return LocalDateTime.parse(s.replace(" ", "T").substring(0, Math.min(19, s.length())));
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
     }
 
     private Map<String, Object> pageOfVotes(Page<Vote> p, int page, int pageSize) {

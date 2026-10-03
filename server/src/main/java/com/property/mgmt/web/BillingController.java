@@ -182,8 +182,18 @@ public class BillingController {
     @PutMapping("/staff/payment-config")
     public ApiResponse<Map<String, Object>> putPayConfig(@RequestBody PayConfigReq req) {
         return ApiResponse.ok(billingService.putPaymentConfig(
-                req.getGuideText(), req.getQrAttachmentId(),
-                req.getPrepaidEnabled(), req.getPrepaidGuideText()));
+                req.getWechatEnabled(), req.getAlipayEnabled(),
+                req.getWechatSubMchId(), req.getAlipaySmid(),
+                req.getWechatAppId(), req.getWechatApiV3Key(),
+                req.getWechatMchSerialNo(), req.getWechatPrivateKeyPem(),
+                req.getAlipayPrivateKey(), req.getAlipayPublicKey(),
+                req.getOnboardingRemark()));
+    }
+
+    @PostMapping("/resident/bills/{id}/pay")
+    public ApiResponse<Map<String, Object>> onlinePay(@PathVariable Long id, @RequestBody(required = false) PayChannelReq req) {
+        String channel = req == null ? "WECHAT" : req.getChannel();
+        return ApiResponse.ok(billingService.onlinePay(id, channel));
     }
 
     @PostMapping("/resident/bills/{id}/wechat-pay")
@@ -196,9 +206,25 @@ public class BillingController {
         return ApiResponse.ok(billingService.wechatNotify(body));
     }
 
+    @PostMapping("/pay/alipay/notify")
+    public ApiResponse<Map<String, Object>> alipayNotify(@RequestBody(required = false) Map<String, Object> body) {
+        return ApiResponse.ok(billingService.payNotify("ALIPAY", body));
+    }
+
+    @PostMapping("/pay/notify/{channel}")
+    public ApiResponse<Map<String, Object>> payNotify(@PathVariable String channel,
+                                                      @RequestBody(required = false) Map<String, Object> body) {
+        return ApiResponse.ok(billingService.payNotify(channel, body));
+    }
+
     @GetMapping("/resident/bills/{id}/pay-guide")
     public ApiResponse<Map<String, Object>> payGuide(@PathVariable Long id) {
         return ApiResponse.ok(billingService.payGuide(id));
+    }
+
+    @GetMapping("/resident/pay-options")
+    public ApiResponse<Map<String, Object>> payOptions() {
+        return ApiResponse.ok(billingService.residentPayOptions());
     }
 
     @PostMapping("/staff/bills/{id}/confirm-paid")
@@ -217,6 +243,11 @@ public class BillingController {
     @PostMapping("/resident/bills/batch-wechat-pay")
     public ApiResponse<Map<String, Object>> batchWechatPay(@RequestBody BatchBillsReq req) {
         return ApiResponse.ok(billingService.batchWechatPay(req.getBillIds()));
+    }
+
+    @PostMapping("/resident/bills/batch-pay")
+    public ApiResponse<Map<String, Object>> batchOnlinePay(@RequestBody BatchPayReq req) {
+        return ApiResponse.ok(billingService.batchOnlinePay(req.getBillIds(), req.getChannel()));
     }
 
     @PostMapping("/staff/bills/{id}/void")
@@ -337,10 +368,30 @@ public class BillingController {
 
     @Data
     public static class PayConfigReq {
-        private String guideText;
-        private Long qrAttachmentId;
-        private Boolean prepaidEnabled;
-        private String prepaidGuideText;
+        private Boolean wechatEnabled;
+        private Boolean alipayEnabled;
+        private String wechatSubMchId;
+        private String alipaySmid;
+        private String wechatAppId;
+        private String wechatApiV3Key;
+        private String wechatMchSerialNo;
+        private String wechatPrivateKeyPem;
+        private String alipayPrivateKey;
+        private String alipayPublicKey;
+        private String onboardingRemark;
+    }
+
+    @Data
+    public static class PayChannelReq {
+        private String channel;
+    }
+
+    @Data
+    public static class BatchPayReq {
+        private List<Long> billIds;
+        private String channel;
+        private String payChannel;
+        private String remark;
     }
 
     @Data

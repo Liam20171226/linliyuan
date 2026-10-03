@@ -8,7 +8,7 @@ import { formatMoney } from '../money'
 import StaffNav from '../components/StaffNav.vue'
 import StaffSessionAction from '../components/StaffSessionAction.vue'
 
-const TAB_KEYS = ['summary', 'entries', 'revenue'] as const
+const TAB_KEYS = ['summary', 'entries', 'revenue', 'reconcile'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 const route = useRoute()
@@ -28,6 +28,12 @@ const singleMonth = ref(_ym)
 const fromMonth = ref(`${_now.getFullYear()}-01`)
 const toMonth = ref(_ym)
 const viewMode = ref('BY_BILL_MONTH')
+
+const reconcileDate = ref(new Date(Date.now() - 86400000).toISOString().slice(0, 10))
+const reconcileChannel = ref('ALL')
+const reconcileRows = ref<any[]>([])
+const reconcileLoading = ref(false)
+const reconcileRunning = ref(false)
 
 const activeTab = computed<TabKey>(() => {
   const t = route.query.tab
@@ -56,9 +62,12 @@ const FEE_LABEL: Record<string, string> = {
 
 const CHANNEL_LABEL: Record<string, string> = {
   WECHAT_MCH: '微信收款',
+  ALIPAY_MCH: '支付宝收款',
   TRANSFER: '转账/线下',
   PREPAID: '预缴',
   CASH: '现金',
+  QR: '收款码',
+  OTHER: '其他',
 }
 
 const ENTRY_TYPE_LABEL: Record<string, string> = {
@@ -360,9 +369,40 @@ async function removeRevenue(row: any) {
   } else ElMessage.error(data.message)
 }
 
+async function loadReconcile() {
+  reconcileLoading.value = true
+  try {
+    const { data } = await api.get('/staff/pay/reconcile', { params: { page: 1, pageSize: 50 } })
+    if (data.code === 0) reconcileRows.value = data.data?.list || []
+    else ElMessage.error(data.message || '加载对账失败')
+  } finally {
+    reconcileLoading.value = false
+  }
+}
+
+async function runReconcile() {
+  reconcileRunning.value = true
+  try {
+    const { data } = await api.post('/staff/pay/reconcile/run', {
+      date: reconcileDate.value,
+      channel: reconcileChannel.value,
+    })
+    if (data.code === 0) {
+      ElMessage.success(data.data?.status === 'MATCHED' ? '对账一致' : '对账存在差额，请核对')
+      await loadReconcile()
+    } else ElMessage.error(data.message || '对账失败')
+  } finally {
+    reconcileRunning.value = false
+  }
+}
+
 async function load() {
   if (activeTab.value === 'revenue') {
     await loadRevenue()
+    return
+  }
+  if (activeTab.value === 'reconcile') {
+    await loadReconcile()
     return
   }
   await Promise.all([loadLists(), loadSummary()])
@@ -866,6 +906,54 @@ watch(activeTab, () => {
               </template>
             </el-table-column>
           </el-table>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="支付对账" name="reconcile">
+        <section v-if="activeTab === 'reconcile'" class="panel" v-loading="reconcileLoading">
+          <div class="panel-hd">
+            <div>
+              <h3>线上支付对账</h3>
+              <p class="panel-desc">对比当日微信/支付宝入账与支付单净额；冲红走原路退后净额应一致</p>
+            </div>
+          </div>
+          <div class="row wrap" style="gap:10px;margin-bottom:14px;align-items:center">
+            <el-date-picker v-model="reconcileDate" type="date" value-format="YYYY-MM-DD" placeholder="对账日" style="width:160px" />
+            <el-select v-model="reconcileChannel" style="width:140px">
+              <el-option label="全部渠道" value="ALL" />
+              <el-option label="微信" value="WECHAT" />
+              <el-option label="支付宝" value="ALIPAY" />
+            </el-select>
+            <el-button type="primary" :loading="reconcileRunning" @click="runReconcile">执行对账</el-button>
+            <el-button @click="loadReconcile">刷新</el-button>
+          </div>
+          <el-table :data="reconcileRows" size="small">
+            <el-table-column prop="reconcileDate" label="日期" width="120" />
+            <el-table-column prop="channel" label="渠道" width="100" />
+            <el-table-column label="平台笔数" width="100">
+              <template #default="{ row }">{{ row.platformCount }}</template>
+            </el-table-column>
+            <el-table-column label="平台金额" width="120">
+              <template #default="{ row }">{{ formatMoney(row.platformAmount) }}</template>
+            </el-table-column>
+            <el-table-column label="渠道笔数" width="100">
+              <template #default="{ row }">{{ row.channelCount }}</template>
+            </el-table-column>
+            <el-table-column label="渠道金额" width="120">
+              <template #default="{ row }">{{ formatMoney(row.channelAmount) }}</template>
+            </el-table-column>
+            <el-table-column label="差额" width="120">
+              <template #default="{ row }">{{ formatMoney(row.diffAmount) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="110">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'MATCHED' ? 'success' : 'warning'" size="small">
+                  {{ row.status === 'MATCHED' ? '一致' : '差异' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+          <p v-if="!reconcileRows.length" class="hint" style="margin-top:12px">暂无对账记录，选择日期后执行对账。</p>
         </section>
       </el-tab-pane>
     </el-tabs>

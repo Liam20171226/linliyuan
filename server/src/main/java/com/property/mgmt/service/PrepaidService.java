@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.property.mgmt.common.BizException;
 import com.property.mgmt.common.ErrorCodes;
 import com.property.mgmt.domain.*;
-import com.property.mgmt.mapper.PaymentConfigMapper;
 import com.property.mgmt.mapper.PrepaidPlanItemMapper;
 import com.property.mgmt.mapper.PrepaidPlanMapper;
 import com.property.mgmt.mapper.RoomMapper;
@@ -37,7 +36,6 @@ public class PrepaidService {
     private final PrepaidPlanItemMapper itemMapper;
     private final RoomMapper roomMapper;
     private final RoomOccupantMapper roomOccupantMapper;
-    private final PaymentConfigMapper paymentConfigMapper;
     private final BillingService billingService;
     private final OccupantQueryService occupantQueryService;
 
@@ -45,13 +43,11 @@ public class PrepaidService {
                           PrepaidPlanItemMapper itemMapper,
                           RoomMapper roomMapper,
                           RoomOccupantMapper roomOccupantMapper,
-                          PaymentConfigMapper paymentConfigMapper,
                           @Lazy BillingService billingService,
                           OccupantQueryService occupantQueryService) {
         this.planMapper = planMapper;
         this.itemMapper = itemMapper;
         this.roomMapper = roomMapper;
-        this.paymentConfigMapper = paymentConfigMapper;
         this.roomOccupantMapper = roomOccupantMapper;
         this.billingService = billingService;
         this.occupantQueryService = occupantQueryService;
@@ -168,18 +164,9 @@ public class PrepaidService {
         public LocalDateTime createdAt;
     }
 
-    private void requirePrepaidEnabled(Long communityId) {
-        PaymentConfig cfg = paymentConfigMapper.selectOne(new LambdaQueryWrapper<PaymentConfig>()
-                .eq(PaymentConfig::getCommunityId, communityId));
-        if (cfg == null || cfg.getPrepaidEnabled() == null || cfg.getPrepaidEnabled() != 1) {
-            throw BizException.of(ErrorCodes.BAD_PARAM, "本小区未开启预缴，请先在收款配置中启用");
-        }
-    }
-
     public Map<String, Object> preview(Long roomId, List<String> billMonths, List<String> feeCategories) {
         AuthUser staff = StaffGuard.requireStaff();
         Long cid = staff.getCommunityId();
-        requirePrepaidEnabled(cid);
         requireRoom(cid, roomId);
         List<QuoteLine> quotes = quoteLines(cid, roomId, billMonths, feeCategories);
         BigDecimal list = quotes.stream().map(q -> q.listAmount).reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -203,7 +190,6 @@ public class PrepaidService {
                                           BigDecimal cashAmount, String payChannel, String remark, boolean confirm) {
         AuthUser staff = StaffGuard.requireStaff();
         Long cid = staff.getCommunityId();
-        requirePrepaidEnabled(cid);
         requireRoom(cid, roomId);
         if (billMonths == null || billMonths.isEmpty()) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "billMonths 不能为空");
@@ -272,7 +258,6 @@ public class PrepaidService {
     @Transactional
     public Map<String, Object> confirmPlan(Long planId) {
         AuthUser staff = StaffGuard.requireStaff();
-        requirePrepaidEnabled(staff.getCommunityId());
         PrepaidPlan plan = requireStaffPlan(planId, staff.getCommunityId());
         if (!"DRAFT".equals(plan.getStatus())) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "仅草稿可确认");
@@ -395,12 +380,9 @@ public class PrepaidService {
                     .distinct()
                     .toList();
         }
-        PaymentConfig cfg = paymentConfigMapper.selectOne(new LambdaQueryWrapper<PaymentConfig>()
-                .eq(PaymentConfig::getCommunityId, cid));
-        boolean prepaidEnabled = cfg != null && cfg.getPrepaidEnabled() != null && cfg.getPrepaidEnabled() == 1;
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("prepaidEnabled", prepaidEnabled);
-        data.put("prepaidGuideText", cfg == null ? null : cfg.getPrepaidGuideText());
+        data.put("prepaidEnabled", true);
+        data.put("prepaidGuideText", null);
         if (roomIds.isEmpty()) {
             data.put("plans", List.of());
             return data;

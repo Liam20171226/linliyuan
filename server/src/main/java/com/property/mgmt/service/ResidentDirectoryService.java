@@ -39,16 +39,20 @@ public class ResidentDirectoryService {
             String p = provinceName.trim();
             String c = StringUtils.hasText(cityName) ? cityName.trim() : "";
             String d = StringUtils.hasText(districtName) ? districtName.trim() : "";
-            String composed = RegionCatalog.composeAddress(p, c, d, null);
-            String raw = p + c + d;
-            // 地址以「省市区」开头，或全文包含完整省市区串
+            String slash = RegionCatalog.composeAddress(p, c, d, null);
+            String legacyFull = p + c + d;
+            String legacyDedup = !c.isEmpty() && c.equals(p) ? p + d : legacyFull;
             q.and(w -> {
-                w.likeRight(Community::getAddress, composed)
+                w.likeRight(Community::getAddress, slash)
                         .or()
-                        .like(Community::getAddress, composed);
-                if (!raw.equals(composed)) {
-                    w.or().likeRight(Community::getAddress, raw)
-                            .or().like(Community::getAddress, raw);
+                        .like(Community::getAddress, slash);
+                if (StringUtils.hasText(legacyFull)) {
+                    w.or().likeRight(Community::getAddress, legacyFull)
+                            .or().like(Community::getAddress, legacyFull);
+                }
+                if (StringUtils.hasText(legacyDedup) && !legacyDedup.equals(legacyFull)) {
+                    w.or().likeRight(Community::getAddress, legacyDedup)
+                            .or().like(Community::getAddress, legacyDedup);
                 }
             });
         }

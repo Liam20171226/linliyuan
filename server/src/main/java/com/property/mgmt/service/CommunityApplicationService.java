@@ -74,6 +74,8 @@ public class CommunityApplicationService {
         }
         RegionCatalog.validate(provinceCode, cityCode, districtCode, provinceName, cityName, districtName);
         templateCode = resolveTemplateCode(templateCode, body);
+        // 物业角色申请同名小区：直接拒绝（住户申请不拦，避免与既有小区撞名影响认证路径外的诉求）
+        rejectStaffDuplicateCommunityName(role, communityName.trim());
 
         long pending = applicationMapper.selectCount(new LambdaQueryWrapper<CommunityApplication>()
                 .eq(CommunityApplication::getApplicantUserId, uid)
@@ -130,8 +132,11 @@ public class CommunityApplicationService {
         if (!"PENDING".equals(app.getStatus())) {
             throw BizException.of(ErrorCodes.BAD_PARAM, "申请已处理");
         }
+        // 审核时再拦一次：物业角色 + 已有同名小区
+        rejectStaffDuplicateCommunityName(app.getApplicantRole(), app.getCommunityName());
 
-        String address = app.getProvinceName() + app.getCityName() + app.getDistrictName() + app.getCommunityName();
+        String address = RegionCatalog.composeAddress(
+                app.getProvinceName(), app.getCityName(), app.getDistrictName(), app.getCommunityName());
         Community c = new Community();
         c.setName(app.getCommunityName());
         c.setAddress(address);
@@ -207,6 +212,19 @@ public class CommunityApplicationService {
         app.setReviewedAt(LocalDateTime.now());
         app.setUpdatedAt(LocalDateTime.now());
         applicationMapper.updateById(app);
+    }
+
+    /** 物业角色申请/审核：已存在同名未删除小区则拒绝 */
+    private void rejectStaffDuplicateCommunityName(String role, String communityName) {
+        if (!"STAFF".equals(role) || !StringUtils.hasText(communityName)) {
+            return;
+        }
+        Long n = communityMapper.selectCount(new LambdaQueryWrapper<Community>()
+                .eq(Community::getName, communityName.trim())
+                .isNull(Community::getDeletedAt));
+        if (n != null && n > 0) {
+            throw BizException.of(ErrorCodes.BAD_PARAM, "已存在同名小区，物业角色不可重复申请创建");
+        }
     }
 
     /**
