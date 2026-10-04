@@ -70,6 +70,23 @@ const occEditForm = ref({
 })
 const occBatchDeleting = ref(false)
 
+const guests = ref<any[]>([])
+const guestsLoading = ref(false)
+const guestMobileQ = ref('')
+const guestPage = ref(1)
+const guestTotal = ref(0)
+const guestLoadedOnce = ref(false)
+const guestSelection = ref<any[]>([])
+const guestBatchDeleting = ref(false)
+const guestEditVisible = ref(false)
+const guestEditSaving = ref(false)
+const guestEditForm = ref({
+  id: 0,
+  realName: '游客',
+  mobile: '',
+  password: '',
+})
+
 const personAddVisible = ref(false)
 const personEditVisible = ref(false)
 const personSaving = ref(false)
@@ -165,6 +182,7 @@ function removeBinding(idx: number) {
 async function load() {
   loading.value = true
   try {
+    await ensureRegions()
     const params: Record<string, string | number> = { page: 1, pageSize: 50 }
     const q = searchName.value.trim()
     if (q) params.name = q
@@ -254,9 +272,10 @@ function parseStoredAddress(address: string) {
   for (const p of regionOptions.value) {
     for (const c of p.children || []) {
       for (const d of c.children || []) {
-        const full = p.label + c.label + d.label
-        const dedup = p.label === c.label ? p.label + d.label : full
-        for (const prefix of [full, dedup]) {
+        const slash = `${p.label}/${c.label}/${d.label}/`
+        const legacyFull = p.label + c.label + d.label
+        const legacyDedup = p.label === c.label ? p.label + d.label : legacyFull
+        for (const prefix of [slash, legacyFull, legacyDedup]) {
           if (address.startsWith(prefix) && prefix.length > best.len) {
             best = {
               codes: [p.value, c.value, d.value],
@@ -269,6 +288,28 @@ function parseStoredAddress(address: string) {
     }
   }
   return { codes: best.codes, detail: best.detail }
+}
+
+/** 列表展示：省/市/区/具体地址；旧无斜杠数据尽量拆开再拼 */
+function formatAddressDisplay(address: string) {
+  if (!address) return '—'
+  if (address.includes('/')) return address
+  const parsed = parseStoredAddress(address)
+  if (parsed.codes.length === 3) {
+    const region = namesFromCodes(parsed.codes)
+    const parts = [region.provinceName, region.cityName, region.districtName].filter(Boolean)
+    return `${parts.join('/')}/${parsed.detail || ''}`
+  }
+  return address
+}
+
+function formatAppRegion(row: {
+  provinceName?: string
+  cityName?: string
+  districtName?: string
+}) {
+  const parts = [row.provinceName, row.cityName, row.districtName].filter((x) => !!x)
+  return parts.length ? `${parts.join('/')}/` : '—'
 }
 
 async function ensureRegions() {
@@ -717,6 +758,15 @@ function onOccSelectionChange(rows: any[]) {
   occSelection.value = rows
 }
 
+/** 统一展示 楼栋/单元/楼层/房号 */
+function occupantSpacePath(row: any) {
+  if (row?.address) return String(row.address)
+  return [row?.buildingName, row?.unitName, row?.floorName, row?.roomNo]
+    .map((x) => (x == null ? '' : String(x).trim()))
+    .filter(Boolean)
+    .join('/')
+}
+
 function openOccEdit(row: any) {
   const roomParts = [row.buildingName, row.unitName, row.floorName, row.roomNo].filter(Boolean)
   occEditForm.value = {
@@ -842,6 +892,8 @@ function onTabChange(name: string | number) {
   } else if (tab === 'occupants') {
     if (!list.value.length) load()
     if (!occLoadedOnce.value) loadOccupants()
+  } else if (tab === 'guests') {
+    if (!guestLoadedOnce.value) loadGuests()
   } else if (tab === 'about') {
     loadAbout()
   }
@@ -853,10 +905,106 @@ function refreshCurrent() {
     loadApps()
   } else if (activeTab.value === 'staff') {
     loadUsers()
+  } else if (activeTab.value === 'occupants') {
+    loadOccupants()
+  } else if (activeTab.value === 'guests') {
+    loadGuests()
   } else if (activeTab.value === 'about') {
     loadAbout()
-  } else {
-    loadOccupants()
+  }
+}
+
+async function loadGuests() {
+  guestsLoading.value = true
+  try {
+    const { data } = await api.get('/platform/guests', {
+      params: {
+        page: guestPage.value,
+        pageSize: 20,
+        mobile: guestMobileQ.value.trim() || undefined,
+      },
+    })
+    if (data.code === 0) {
+      guests.value = data.data.list || []
+      guestTotal.value = data.data.total || 0
+      guestLoadedOnce.value = true
+      guestSelection.value = []
+    } else ElMessage.error(data.message)
+  } finally {
+    guestsLoading.value = false
+  }
+}
+
+function resetGuestSearch() {
+  guestMobileQ.value = ''
+  guestPage.value = 1
+  loadGuests()
+}
+
+function onGuestSelectionChange(rows: any[]) {
+  guestSelection.value = rows || []
+}
+
+function openGuestEdit(row: any) {
+  guestEditForm.value = {
+    id: row.id,
+    realName: row.realName || '游客',
+    mobile: row.mobile || '',
+    password: row.password || '',
+  }
+  guestEditVisible.value = true
+}
+
+async function saveGuestEdit() {
+  const f = guestEditForm.value
+  if (!/^1\d{10}$/.test(f.mobile.trim())) {
+    ElMessage.warning('请填写正确手机号')
+    return
+  }
+  if (f.password && (f.password.length < 6 || f.password.length > 13)) {
+    ElMessage.warning('密码须为 6～13 位')
+    return
+  }
+  guestEditSaving.value = true
+  try {
+    const { data } = await api.put(`/platform/guests/${f.id}`, {
+      realName: f.realName.trim() || '游客',
+      mobile: f.mobile.trim(),
+      password: f.password.trim() || undefined,
+    })
+    if (data.code === 0) {
+      ElMessage.success('已保存')
+      guestEditVisible.value = false
+      loadGuests()
+    } else ElMessage.error(data.message)
+  } finally {
+    guestEditSaving.value = false
+  }
+}
+
+async function deleteGuest(row: any) {
+  await ElMessageBox.confirm(`确定删除游客「${row.mobile}」？`, '删除确认', { type: 'warning' })
+  const { data } = await api.post('/platform/guests/batch-delete', { ids: [row.id] })
+  if (data.code === 0) {
+    ElMessage.success('已删除')
+    loadGuests()
+  } else ElMessage.error(data.message)
+}
+
+async function batchDeleteGuests() {
+  if (!guestSelection.value.length) return
+  await ElMessageBox.confirm(`确定删除选中的 ${guestSelection.value.length} 个游客？`, '批量删除', { type: 'warning' })
+  guestBatchDeleting.value = true
+  try {
+    const { data } = await api.post('/platform/guests/batch-delete', {
+      ids: guestSelection.value.map((r) => r.id),
+    })
+    if (data.code === 0) {
+      ElMessage.success(`已删除 ${data.data?.deleted ?? 0} 个`)
+      loadGuests()
+    } else ElMessage.error(data.message)
+  } finally {
+    guestBatchDeleting.value = false
   }
 }
 
@@ -1040,7 +1188,7 @@ onMounted(() => {
     <header>
       <div>
         <h2>平台管理</h2>
-        <p class="sub">小区 · 物业人员 · 全体住户 · 关于我们</p>
+        <p class="sub">小区 · 物业人员 · 全体住户 · 游客 · 关于我们</p>
       </div>
       <div class="row">
         <el-button @click="refreshCurrent">刷新</el-button>
@@ -1083,7 +1231,9 @@ onMounted(() => {
           <el-table :data="list" v-loading="loading" style="width:100%">
             <el-table-column type="index" label="序号" width="60" :index="(i: number) => i + 1" />
             <el-table-column prop="name" label="名称" min-width="140" />
-            <el-table-column prop="address" label="地址" min-width="160" />
+            <el-table-column label="地址" min-width="200">
+              <template #default="{ row }">{{ formatAddressDisplay(row.address || '') }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="230" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" link @click="enterCommunity(row)">进入小区</el-button>
@@ -1111,9 +1261,9 @@ onMounted(() => {
           <el-table :data="apps" v-loading="appsLoading" style="width:100%">
             <el-table-column type="index" label="序号" width="60" :index="(i: number) => i + 1" />
             <el-table-column prop="communityName" label="小区" min-width="120" />
-            <el-table-column label="地区" min-width="160">
+            <el-table-column label="地区" min-width="180">
               <template #default="{ row }">
-                {{ row.provinceName }}{{ row.cityName }}{{ row.districtName }}
+                {{ formatAppRegion(row) }}
               </template>
             </el-table-column>
             <el-table-column prop="applicantName" label="申请人" width="90" />
@@ -1292,10 +1442,9 @@ onMounted(() => {
             <el-table-column type="selection" width="48" />
             <el-table-column type="index" label="序号" width="60" :index="(i: number) => (occPage - 1) * 20 + i + 1" />
             <el-table-column prop="communityName" label="小区" min-width="120" />
-            <el-table-column prop="buildingName" label="楼栋" min-width="100" />
-            <el-table-column prop="unitName" label="单元" width="100" />
-            <el-table-column prop="floorName" label="楼层" width="80" />
-            <el-table-column prop="roomNo" label="房号" width="80" />
+            <el-table-column label="楼栋/单元/楼层/房号" min-width="220" show-overflow-tooltip>
+              <template #default="{ row }">{{ occupantSpacePath(row) }}</template>
+            </el-table-column>
             <el-table-column prop="realName" label="姓名" width="100" />
             <el-table-column prop="mobile" label="手机" width="120" />
             <el-table-column label="角色" width="100">
@@ -1320,6 +1469,65 @@ onMounted(() => {
             />
           </div>
           <p class="hint">可按小区/姓名/手机/身份证/房号查询有效住户绑定。编辑可改姓名、手机、角色与身份证；解除绑定后对方不再作为该房住户（账号保留）。</p>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="游客" name="guests">
+        <section class="setup first">
+          <div class="sec-head">
+            <h3>游客列表</h3>
+            <div class="row">
+              <el-button
+                type="danger"
+                plain
+                :disabled="!guestSelection.length"
+                :loading="guestBatchDeleting"
+                @click="batchDeleteGuests"
+              >
+                批量删除{{ guestSelection.length ? `（${guestSelection.length}）` : '' }}
+              </el-button>
+            </div>
+          </div>
+          <div class="row wrap" style="margin-bottom:10px">
+            <el-input
+              v-model="guestMobileQ"
+              placeholder="手机号"
+              clearable
+              style="width:180px"
+              @keyup.enter="guestPage=1;loadGuests()"
+            />
+            <el-button type="primary" @click="guestPage=1;loadGuests()">查询</el-button>
+            <el-button @click="resetGuestSearch">重置</el-button>
+          </div>
+          <el-table
+            :data="guests"
+            v-loading="guestsLoading"
+            style="width:100%"
+            @selection-change="onGuestSelectionChange"
+          >
+            <el-table-column type="selection" width="48" />
+            <el-table-column type="index" label="序号" width="70" :index="(i: number) => (guestPage - 1) * 20 + i + 1" />
+            <el-table-column prop="realName" label="姓名" min-width="120" />
+            <el-table-column prop="mobile" label="手机" min-width="140" />
+            <el-table-column prop="password" label="密码" min-width="120" />
+            <el-table-column label="操作" width="140" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="openGuestEdit(row)">编辑</el-button>
+                <el-button link type="danger" @click="deleteGuest(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="row" style="margin-top:10px;justify-content:flex-end">
+            <el-pagination
+              background
+              layout="prev, pager, next, total"
+              :total="guestTotal"
+              :page-size="20"
+              v-model:current-page="guestPage"
+              @current-change="loadGuests"
+            />
+          </div>
+          <p class="hint">仅展示 App 自行注册的游客账号。默认姓名为「游客」；密码最多 13 位，列表中以明文显示便于物业核对。</p>
         </section>
       </el-tab-pane>
 
@@ -1374,6 +1582,24 @@ onMounted(() => {
       <template #footer>
         <el-button @click="occEditVisible = false">取消</el-button>
         <el-button type="primary" :loading="occEditSaving" @click="saveOccEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="guestEditVisible" title="编辑游客" width="420px" destroy-on-close>
+      <el-form label-position="top">
+        <el-form-item label="姓名">
+          <el-input v-model="guestEditForm.realName" placeholder="默认游客" maxlength="32" />
+        </el-form-item>
+        <el-form-item label="手机号" required>
+          <el-input v-model="guestEditForm.mobile" placeholder="11 位手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="密码（6～13 位，明文）">
+          <el-input v-model="guestEditForm.password" placeholder="不改可留空" maxlength="13" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="guestEditVisible = false">取消</el-button>
+        <el-button type="primary" :loading="guestEditSaving" @click="saveGuestEdit">保存</el-button>
       </template>
     </el-dialog>
 
